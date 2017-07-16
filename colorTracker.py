@@ -3,7 +3,8 @@ import datetime
 import time
 import cv2
 import numpy as np
-camera = cv2.VideoCapture('C:/Users/joe/Documents/Python/VID_20160221_170847251.avi')
+
+camera = cv2.VideoCapture("C:/Users/joe/Documents/Github/foosball/Test Videos/blue ballTrim.mp4")
 
 whiteLower = (0, 0, 0)
 whiteUpper = (0, 0, 255)
@@ -13,10 +14,16 @@ yellowUpper = (204,204,0)
 
 greenLower = (29, 86, 6)
 greenUpper = (64, 255, 255)
-#whiteLower = np.array([0,0,0], dtype=np.uint8)
-#whiteUpper = np.array([0,0,255], dtype=np.uint8)
+
 redLower = (17, 15, 100)
 redUpper = (50, 56, 200)
+
+lower_blue = np.array([60,50,50])
+upper_blue = np.array([130,255,255])
+
+upper = upper_blue
+lower = lower_blue
+
 firstFrame = None
 while True:
 	(grabbed, frame) = camera.read()
@@ -35,7 +42,7 @@ while True:
 	# first frame
 	#frameDelta = cv2.absdiff(firstFrame, gray)
 
-	mask = cv2.inRange(hsv, redLower, redUpper)
+	mask = cv2.inRange(hsv, lower, upper)
 	cv2.imshow("Mask", mask)
 
 	mask = cv2.erode(mask, None, iterations=2)
@@ -57,12 +64,13 @@ while True:
 		center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
  
 		# only proceed if the radius meets a minimum size
-		if radius > 5:
+		if( radius > 5):
 			# draw the circle and centroid on the frame,
 			# then update the list of tracked points
 			cv2.circle(frame, (int(x), int(y)), int(radius),
 				(0, 255, 255), 2)
 			cv2.circle(frame, center, 5, (0, 0, 255), -1)
+			print("radius: %f\n",radius)	
  
 
 	# show the frame to our screen
