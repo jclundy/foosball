@@ -1,6 +1,7 @@
 #include <AccelStepper.h>
 #include <ros.h>
 #include <std_msgs/Int16.h>
+#include <arduino-timer.h>
 
 AccelStepper stepper(AccelStepper::DRIVER, 9, 8);
 
@@ -17,29 +18,34 @@ ros::Publisher stepsPub("steps", &stepsMsg);
 std_msgs::Int16 speedMsg;
 ros::Publisher speedPub("speedAck", &speedMsg);
 
+Timer<1> timer;
+bool timerCallback(void *argument) {
+  nh.spinOnce();
+
+  stepsMsg.data = stepper.currentPosition();
+  stepsPub.publish(&stepsMsg);
+
+  speedMsg.data = stepper.speed();
+  speedPub.publish(&speedMsg);
+  
+  return true;
+}
+
 void setup() {
-  stepper.setMaxSpeed(10000);
+  stepper.setMaxSpeed(20000);
   stepper.setSpeed(0);
 
   nh.initNode();
   nh.advertise(stepsPub);
   nh.advertise(speedPub);
   nh.subscribe(sub);
+
+  timer.every(100, timerCallback);
 }
-int count = 0;
+
 void loop() {
   // put your main code here, to run repeatedly:
 
-  count++;
-  if (count > 100) {
-    nh.spinOnce();  
-    stepsMsg.data = stepper.currentPosition();
-    stepsPub.publish(&stepsMsg);
-  
-    speedMsg.data = stepper.speed();
-    speedPub.publish(&speedMsg);
-
-    count = 0;
-  }
+  timer.tick();
   stepper.runSpeed();
 }
