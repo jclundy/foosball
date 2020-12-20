@@ -5,8 +5,23 @@
 
 AccelStepper stepper(AccelStepper::DRIVER, 9, 8);
 
+
+typedef enum {
+  REVERSE = -1,
+  NEUTRAL = 0,
+  FORWARD = 1,
+} direction_t;
+
+int stallDirection = NEUTRAL;
+
+bool drivingIntoStall(int stallDirection, int speedCommand) {
+  return (stallDirection == FORWARD && speedCommand > 0) || (stallDirection == REVERSE && speedCommand < 0);
+}
+
 void servo_cb( const std_msgs::Int16& cmd_msg){
-  stepper.setSpeed(cmd_msg.data);
+
+  int speedCommand = cmd_msg.data;
+  stepper.setSpeed(speedCommand);
 }
 
 ros::NodeHandle nh;
@@ -17,12 +32,6 @@ ros::Publisher stepsPub("steps", &stepsMsg);
 
 std_msgs::Int16 speedMsg;
 ros::Publisher speedPub("speedAck", &speedMsg);
-
-typedef enum {
-  REVERSE = -1,
-  NEUTRAL = 0,
-  FORWARD = 1,
-} direction_t;
 
 Timer<1> timer;
 bool timerCallback(void *argument) {
@@ -63,8 +72,7 @@ int checkLimitSwitches(const int forwardSwitchPin, const int rearSwitchPin) {
   int ledOutput = (forwardDepressed || rearDepressed);
   digitalWrite(LED_BUILTIN, ledOutput);
 
-  float stepperSpeed = stepper.speed();
-  if(forwardDepressed && stepperSpeed > 0) {
+  if(forwardDepressed) {
     return FORWARD;
   } else if(rearDepressed) {
     return REVERSE;
@@ -73,10 +81,21 @@ int checkLimitSwitches(const int forwardSwitchPin, const int rearSwitchPin) {
   }
 }
 
+void checkStalled() {
+  stallDirection = checkLimitSwitches(forwardLimitPin, rearLimitPin);
+
+  if(stallDirection != NEUTRAL) {
+    int speedCommand = stepper.speed();
+    if(drivingIntoStall(stallDirection, speedCommand)){
+      stepper.setSpeed(0);
+    }
+  }
+}
+
 void loop() {
   // put your main code here, to run repeatedly:
 
   timer.tick();
+  checkStalled();
   stepper.runSpeed();
-  checkLimitSwitches(forwardLimitPin, rearLimitPin);
 }
