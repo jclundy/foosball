@@ -3,8 +3,8 @@
 #include <std_msgs/Int16.h>
 #include <arduino-timer.h>
 
-AccelStepper stepper(AccelStepper::DRIVER, 9, 8);
-
+AccelStepper wristMotor(AccelStepper::DRIVER, 9, 8);
+AccelStepper linearMotor(AccelStepper::DRIVER, 7, 6);
 
 typedef enum {
   REVERSE = -1,
@@ -18,30 +18,35 @@ bool drivingIntoStall(int stallDirection, int speedCommand) {
   return (stallDirection == FORWARD && speedCommand > 0) || (stallDirection == REVERSE && speedCommand < 0);
 }
 
-void servo_cb( const std_msgs::Int16& cmd_msg){
-
+void wrist_cb( const std_msgs::Int16& cmd_msg){
   int speedCommand = cmd_msg.data;
-  stepper.setSpeed(speedCommand);
+  wristMotor.setSpeed(speedCommand);
+}
+
+void linear_cb( const std_msgs::Int16& cmd_msg){
+  int speedCommand = cmd_msg.data;
+  linearMotor.setSpeed(speedCommand);
 }
 
 ros::NodeHandle nh;
-ros::Subscriber<std_msgs::Int16> sub("speed", servo_cb);
+ros::Subscriber<std_msgs::Int16> wrist_sub("wrist_speed", wrist_cb);
+ros::Subscriber<std_msgs::Int16> linear_sub("linear_speed", linear_cb);
 
-std_msgs::Int16 stepsMsg;
-ros::Publisher stepsPub("steps", &stepsMsg);
+std_msgs::Int16 linearStepsMsg;
+ros::Publisher linearStepsPub("linear_steps", &linearStepsMsg);
 
-std_msgs::Int16 speedMsg;
-ros::Publisher speedPub("speedAck", &speedMsg);
+std_msgs::Int16 wristStepsMsg;
+ros::Publisher wristStepsPub("wrist_steps", &wristStepsMsg);
 
 Timer<1> timer;
 bool timerCallback(void *argument) {
   nh.spinOnce();
 
-  stepsMsg.data = stepper.currentPosition();
-  stepsPub.publish(&stepsMsg);
-
-  speedMsg.data = stepper.speed();
-  speedPub.publish(&speedMsg);
+  linearStepsMsg.data = linearMotor.currentPosition();
+  linearStepsPub.publish(&linearStepsMsg);
+  
+  wristStepsMsg.data = wristMotor.currentPosition();
+  wristStepsPub.publish(&wristStepsMsg);
   
   return true;
 }
@@ -50,13 +55,14 @@ const int rearLimitPin = 2;
 const int forwardLimitPin = 3;
 
 void setup() {
-  stepper.setMaxSpeed(20000);
-  stepper.setSpeed(0);
+  wristMotor.setMaxSpeed(20000);
+  wristMotor.setSpeed(0);
 
   nh.initNode();
-  nh.advertise(stepsPub);
-  nh.advertise(speedPub);
-  nh.subscribe(sub);
+  nh.advertise(linearStepsPub);
+  nh.advertise(wristStepsPub);
+  nh.subscribe(wrist_sub);
+  nh.subscribe(linear_sub);
 
   timer.every(100, timerCallback);
 
@@ -85,9 +91,9 @@ void checkStalled() {
   stallDirection = checkLimitSwitches(forwardLimitPin, rearLimitPin);
 
   if(stallDirection != NEUTRAL) {
-    int speedCommand = stepper.speed();
+    int speedCommand = linearMotor.speed();
     if(drivingIntoStall(stallDirection, speedCommand)){
-      stepper.setSpeed(0);
+      linearMotor.setSpeed(0);
     }
   }
 }
@@ -97,5 +103,6 @@ void loop() {
 
   timer.tick();
   checkStalled();
-  stepper.runSpeed();
+  wristMotor.runSpeed();
+  linearMotor.runSpeed();
 }
