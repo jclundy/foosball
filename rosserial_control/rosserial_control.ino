@@ -3,8 +3,8 @@
 #include <std_msgs/Int16.h>
 #include <arduino-timer.h>
 
-AccelStepper wristMotor(AccelStepper::DRIVER, 9, 8);
-AccelStepper linearMotor(AccelStepper::DRIVER, 7, 6);
+AccelStepper wristMotor(AccelStepper::DRIVER, 7, 6);
+AccelStepper linearMotor(AccelStepper::DRIVER, 9, 8);
 
 typedef enum {
   REVERSE = -1,
@@ -57,6 +57,9 @@ const int forwardLimitPin = 3;
 void setup() {
   wristMotor.setMaxSpeed(20000);
   wristMotor.setSpeed(0);
+
+  linearMotor.setMaxSpeed(20000);
+  linearMotor.setSpeed(0);
 
   nh.initNode();
   nh.advertise(linearStepsPub);
