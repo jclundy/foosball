@@ -4,7 +4,8 @@ import time
 import cv2
 import numpy as np
 
-camera = cv2.VideoCapture("C:/Users/joe/Documents/Github/foosball/Test Videos/blue ballTrim.mp4")
+filePath = "/home/joe/Videos/Webcam/2021-12-05-144129.webm"
+camera = cv2.VideoCapture(filePath)
 
 whiteLower = (0, 0, 0)
 whiteUpper = (0, 0, 255)
@@ -21,14 +22,18 @@ redUpper = (50, 56, 200)
 lower_blue = np.array([60,50,50])
 upper_blue = np.array([130,255,255])
 
-upper = upper_blue
-lower = lower_blue
+pinkLower = (140, 10, 225)
+pinkUpper = (180, 118, 255)
+
+upper = pinkUpper
+lower = redUpper
 
 firstFrame = None
 while True:
 	(grabbed, frame) = camera.read()
 	if not grabbed:
-		break
+		camera.set(cv2.CAP_PROP_POS_FRAMES, 0)
+		continue
 
 	height, width = frame.shape[:2]
 	frame = cv2.resize(frame,(240, 480), interpolation = cv2.INTER_CUBIC)
