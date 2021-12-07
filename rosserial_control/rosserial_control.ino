@@ -1,6 +1,7 @@
 #include <AccelStepper.h>
 #include <ros.h>
 #include <std_msgs/Int16.h>
+#include <std_msgs/Int8.h>
 #include <arduino-timer.h>
 
 AccelStepper wristMotor(AccelStepper::DRIVER, 7, 6);
@@ -38,6 +39,9 @@ ros::Publisher linearStepsPub("linear_steps", &linearStepsMsg);
 std_msgs::Int16 wristStepsMsg;
 ros::Publisher wristStepsPub("wrist_steps", &wristStepsMsg);
 
+std_msgs::Int8 limitMsg;
+ros::Publisher limitPub("limit_reached", &limitMsg);
+
 Timer<1> timer;
 bool timerCallback(void *argument) {
   nh.spinOnce();
@@ -64,6 +68,7 @@ void setup() {
   nh.initNode();
   nh.advertise(linearStepsPub);
   nh.advertise(wristStepsPub);
+  nh.advertise(limitPub);
   nh.subscribe(wrist_sub);
   nh.subscribe(linear_sub);
 
@@ -91,7 +96,13 @@ int checkLimitSwitches(const int forwardSwitchPin, const int rearSwitchPin) {
 }
 
 void checkStalled() {
-  stallDirection = checkLimitSwitches(forwardLimitPin, rearLimitPin);
+  int newStallDirection = checkLimitSwitches(forwardLimitPin, rearLimitPin);
+
+  if(newStallDirection != stallDirection){
+    stallDirection = newStallDirection;
+    limitMsg.data = stallDirection;
+    limitPub.publish(&limitMsg);
+  }
 
   if(stallDirection != NEUTRAL) {
     int speedCommand = linearMotor.speed();
