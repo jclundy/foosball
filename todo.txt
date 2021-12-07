@@ -1,0 +1,35 @@
+Next steps
+
+1. Startup routine
+
+Arduino side:
+- arduino should startup in STANDBY_MODE
+- should listen for CALIBRATION_MODE command
+-- listen to speed command
+-- listen for 'set steps'
+void AccelStepper::setCurrentPosition 	( 	long  	position	) 	
+
+ROS side
+- implement ros node in c
+- refresh on how to setup c project and compile
+-- maybe see if this is easy to do in python?
+- listen for linear position
+- send set speed command
+- send set steps command                                                                                                                                                                                                                                                                                            
+
+2. Ball tracking
+- do test with live ball tracking
+- look into way to measure latency
+- test other tracking methods - get file to compile
+- implement ros node in c
+
+3. Manually control speed with low latency
+- implement ros node in c
+- mouse and keyboard inputs?  
+
+4. ball motion tracking
+- implement ball state estimation node
+- 
+- make linear motor follow ball position
+
+5. use aruco markers for board limits
