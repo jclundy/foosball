@@ -67,10 +67,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
+#generate_messages(
 #   DEPENDENCIES
 #   std_msgs
-# )
+#)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -115,9 +115,14 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
+
+
+add_executable(startup src/startup.cpp)
+target_link_libraries(startup ${catkin_LIBRARIES})
+#add_dependencies(startup foos_control_generate_messages_cpp)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -132,7 +137,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/foos_control_node.cpp)
+## add_executable(${PROJECT_NAME}_node src/foos_control_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
