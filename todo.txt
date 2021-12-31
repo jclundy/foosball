@@ -1,4 +1,13 @@
+Dec 29 2021
+Todo
+- implement logic to reset linear motor steps (need to edit arduino logic too)
+- implement logic to go to position (need to edit arduino logic too)
 
+- once the above is done, work on logic for 'open loop' control mode using hand controller or mouse/keyboard inputs
+
+Progress
+- relearned how to implement & build a ros node
+- implemented node to run a startup routine driving the carriage forward and backwards
 Dec 6th 2021
 Next steps
 
