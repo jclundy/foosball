@@ -7,6 +7,13 @@ Progress
 Next steps
 - implement 'open loop' controller using hand controller or mouse/keyboard inputs
 
+Minor improvements to make
+- use custom message - int16 tuple; easy to implement on Ubuntu side, not sure how to implement arduino side
+- as follow up to above, have generic 'setSpeed' and 'setPosition' commands, use motor id, likewise use tuple for 'limitReached' message
+- take in command line arguments for startupNode - default speed
+- read in new command lines - r for restart
+
+
 Dec 29 2021
 Todo
 - implement logic to reset linear motor steps (need to edit arduino logic too)
