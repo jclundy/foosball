@@ -69,12 +69,12 @@ void limitReachedCallBack(const std_msgs::Int8& msg)
   	
   } else if (msg.data == REVERSE && !calibrationProgress.rearDepressed) {
   	// was driving reverse and hit limit
-	calibrationProgress.rearDepressed = true;
-	// drive forward
-	speedCmd = DEFAULT_SPEED;
-	minSteps = steps;
+		calibrationProgress.rearDepressed = true;
+		// drive forward
+		speedCmd = DEFAULT_SPEED;
+		minSteps = steps;
 
-	publishSpeedMode();
+		publishSpeedMode();
   }
   
 
