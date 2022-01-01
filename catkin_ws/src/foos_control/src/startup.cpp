@@ -12,7 +12,7 @@ typedef struct {
 
 calibration_progress_t calibrationProgress;
 
-const int16_t DEFAULT_SPEED = 200;
+const int16_t DEFAULT_SPEED = 500;
 
 int16_t steps = 0;
 int16_t maxSteps = 0;
