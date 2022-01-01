@@ -30,18 +30,20 @@ typedef enum {
   LINEAR_MOTOR,
 } motor_type_t;
 
-ros::Publisher speedPub;
+ros::Publisher speedModePub;
 ros::Publisher positionPub;
+int16_t speedCmd = 0;
 
-void publishSpeedCmd(int16_t speed) {
-	std_msgs::Int16 linearSpeedCmd;
-	linearSpeedCmd.data = speed;
-  	speedPub.publish(linearSpeedCmd);
+
+void publishSpeedMode() {
+  std_msgs::UInt8 speedModeCmd;
+  speedModeCmd.data = LINEAR_MOTOR;
+  speedModePub.publish(speedModeCmd);
 }
 
 void limitReachedCallBack(const std_msgs::Int8& msg)
 {
-  int16_t speedCmd = 0;
+  
   if(calibrationProgress.waitingForUserSwitchPress) {
   	if(msg.data == FORWARD) {
   		// user pressed forward switch, drive forward
@@ -51,8 +53,8 @@ void limitReachedCallBack(const std_msgs::Int8& msg)
   		speedCmd = -1 * DEFAULT_SPEED;
   	}
   	calibrationProgress.waitingForUserSwitchPress = false;
- 	
-  	publishSpeedCmd(speedCmd);
+
+	publishSpeedMode();
 
   	ROS_INFO("calibration started");
   } else if (msg.data == FORWARD && !calibrationProgress.forwardDepressed) {
@@ -63,15 +65,16 @@ void limitReachedCallBack(const std_msgs::Int8& msg)
   	
   	maxSteps = steps;
   	
-  	publishSpeedCmd(speedCmd);
+	publishSpeedMode();  	
+  	
   } else if (msg.data == REVERSE && !calibrationProgress.rearDepressed) {
   	// was driving reverse and hit limit
 	calibrationProgress.rearDepressed = true;
 	// drive forward
 	speedCmd = DEFAULT_SPEED;
 	minSteps = steps;
-	
-	publishSpeedCmd(speedCmd);
+
+	publishSpeedMode();
   }
   
 
@@ -86,10 +89,12 @@ void limitReachedCallBack(const std_msgs::Int8& msg)
   	positionPub.publish(positionCmd);
   	
   	speedCmd = copysign(DEFAULT_SPEED, (midPoint - steps));
+  	
+  	ROS_INFO("setpoint %i", midPoint);
     	
-  	publishSpeedCmd(speedCmd);
   }
 
+  ROS_INFO("================");
   ROS_INFO("steps %i", steps);  
   ROS_INFO("limit hit %i", msg.data);    
   ROS_INFO("speed cmd %i", speedCmd);  
@@ -114,10 +119,10 @@ int main(int argc, char **argv)
 
   ros::Subscriber limitSub = n.subscribe("limit_reached", 10, limitReachedCallBack);
   ros::Subscriber stepsSub = n.subscribe("linear_steps", 10, linearStepsCallBack);
-  speedPub = n.advertise<std_msgs::Int16>("linear_speed", 10);
+  ros::Publisher speedPub = n.advertise<std_msgs::Int16>("linear_speed", 10);
   positionPub = n.advertise<std_msgs::Int16>("linear_position_cmd", 10);
 
-  ros::Publisher speedModePub = n.advertise<std_msgs::UInt8>("motor_speed_mode_cmd", 10);
+  speedModePub = n.advertise<std_msgs::UInt8>("motor_speed_mode_cmd", 10);
 
   ros::Rate loop_rate(10);
 
@@ -127,9 +132,13 @@ int main(int argc, char **argv)
   speedModeCmd.data = LINEAR_MOTOR;
   speedModePub.publish(speedModeCmd);
   
+  std_msgs::Int16 linearSpeedCmd;
   
   while (ros::ok())
   {
+  
+    linearSpeedCmd.data = speedCmd;
+    speedPub.publish(linearSpeedCmd);
 
     ros::spinOnce();
 
