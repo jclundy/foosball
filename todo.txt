@@ -1,3 +1,12 @@
+Dec 31 2021
+
+Progress
+- added logic to switch b/t speed and position mode for arduino's stepper driver
+- added logic to center the carriage after running the startup routine
+
+Next steps
+- implement 'open loop' controller using hand controller or mouse/keyboard inputs
+
 Dec 29 2021
 Todo
 - implement logic to reset linear motor steps (need to edit arduino logic too)
