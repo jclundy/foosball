@@ -14,7 +14,7 @@ int16_t wristSpeedRequested;
 void joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 {
   linearSpeedRequested = LINEAR_MAX_SPEED*joy->axes[LH_JOY_VERTICAL_AXIS_INDEX];
-  wristSpeedRequested = WRIST_MAX_SPEED*joy->axes[RH_JOY_HORIZONTAL_AXIS_INDEX];
+  wristSpeedRequested = -WRIST_MAX_SPEED*joy->axes[RH_JOY_HORIZONTAL_AXIS_INDEX];
 }
 
 int main(int argc, char **argv)
