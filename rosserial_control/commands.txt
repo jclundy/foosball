@@ -13,3 +13,18 @@ rostopic pub -1 wrist_speed std_msgs/Int16 -- <wrist_speed>
 
 #for publishing linear speed command
 rostopic pub -1 linear_speed std_msgs/Int16 -- <linear_speed>
+
+
+#for using joystick
+
+
+
+ls -l /dev/input/js0
+
+# if not rw enabled
+sudo chmod a+rw /dev/input/jsX
+
+rosparam set joy_node/dev "/dev/input/jsX"
+
+rosrun joy joy_node
+rostopic echo joy
