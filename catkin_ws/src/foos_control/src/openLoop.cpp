@@ -6,11 +6,15 @@
 int16_t linearSpeedRequested;
 int16_t wristSpeedRequested;
 
-#define LINEAR_MAX_SPEED 1000
-#define RH_JOY_VERTICAL_AXIS_INDEX 1
+#define LINEAR_MAX_SPEED 2000
+#define WRIST_MAX_SPEED 2000
+#define LH_JOY_VERTICAL_AXIS_INDEX 1
+#define RH_JOY_HORIZONTAL_AXIS_INDEX 3
+
 void joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 {
-  linearSpeedRequested = LINEAR_MAX_SPEED*joy->axes[RH_JOY_VERTICAL_AXIS_INDEX];
+  linearSpeedRequested = LINEAR_MAX_SPEED*joy->axes[LH_JOY_VERTICAL_AXIS_INDEX];
+  wristSpeedRequested = WRIST_MAX_SPEED*joy->axes[RH_JOY_HORIZONTAL_AXIS_INDEX];
 }
 
 int main(int argc, char **argv)
@@ -38,7 +42,7 @@ int main(int argc, char **argv)
   {
   
     linearSpeedCmd.data = linearSpeedRequested;
-    wristSpeedCmd.data = 0;
+    wristSpeedCmd.data = wristSpeedRequested;
     linearSpeedPub.publish(linearSpeedCmd);
     wristSpeedPub.publish(wristSpeedCmd);
 
