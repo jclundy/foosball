@@ -10,6 +10,7 @@ project(foos_control)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  sensor_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -123,6 +124,8 @@ include_directories(
 add_executable(startup src/startup.cpp)
 target_link_libraries(startup ${catkin_LIBRARIES})
 #add_dependencies(startup foos_control_generate_messages_cpp)
+add_executable(openLoop src/openLoop.cpp)
+target_link_libraries(openLoop ${catkin_LIBRARIES})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
