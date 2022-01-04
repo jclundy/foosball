@@ -23,8 +23,14 @@ ls -l /dev/input/js0
 
 # if not rw enabled
 sudo chmod a+rw /dev/input/jsX
-
+source ~/catkin_ws/devel/setup.bash
 rosparam set joy_node/dev "/dev/input/jsX"
 
 rosrun joy joy_node
 rostopic echo joy
+
+#running open loop controller
+rosrun foos_control openLoop
+
+#running startup calibration
+rosrun foos_control startup
