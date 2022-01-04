@@ -6,8 +6,8 @@
 int16_t linearSpeedRequested;
 int16_t wristSpeedRequested;
 
-#define LINEAR_MAX_SPEED 2000
-#define WRIST_MAX_SPEED 2000
+#define LINEAR_MAX_SPEED 7500
+#define WRIST_MAX_SPEED 5000
 #define LH_JOY_VERTICAL_AXIS_INDEX 1
 #define RH_JOY_HORIZONTAL_AXIS_INDEX 3
 
