@@ -1,0 +1,4 @@
+<launch>
+<!-- controllers -->
+<node pkg="foos_control" type="openLoop" name="openLoop"/>
+</launch>

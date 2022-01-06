@@ -34,3 +34,6 @@ rosrun foos_control openLoop
 
 #running startup calibration
 rosrun foos_control startup
+
+#kill roscore
+killall -9 rosmaster
