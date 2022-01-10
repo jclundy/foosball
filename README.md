@@ -1,7 +1,8 @@
-# foosball
+# Project Resources
 See design documents, photos and videos on google drive: see [Foosball Robot Project](https://drive.google.com/drive/folders/1GIF702EpTtpYjg1gBTahzj_a4CFIcvuH?usp=sharing)
 
-Original Design Document [Design of a Robotic Foosball Goalie System](https://drive.google.com/file/d/1CXTJUFzBpi-gHU4JU6HC7jRyM7l91VT3/view?usp=sharing)
+## Important Links
+Original Design Document: [Design of a Robotic Foosball Goalie System](https://drive.google.com/file/d/1CXTJUFzBpi-gHU4JU6HC7jRyM7l91VT3/view?usp=sharing)
 
 Proof that I actually assembled it: [Photos](https://drive.google.com/drive/folders/1bLwtLpiks6kAcvACgz2hKZ8CoLaUbJQ_?usp=sharing)
 
