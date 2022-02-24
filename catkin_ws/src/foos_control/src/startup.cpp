@@ -3,6 +3,7 @@
 #include "std_msgs/Int16.h"
 #include "std_msgs/Int8.h"
 #include "std_msgs/UInt8.h"
+#include "std_msgs/Int16MultiArray.h"
 
 typedef struct {
   bool waitingForUserSwitchPress;
@@ -32,6 +33,7 @@ typedef enum {
 
 ros::Publisher speedModePub;
 ros::Publisher positionPub;
+ros::Publisher calibrationPub;
 int16_t speedCmd = 0;
 
 
@@ -91,7 +93,11 @@ void limitReachedCallBack(const std_msgs::Int8& msg)
   	speedCmd = copysign(DEFAULT_SPEED, (midPoint - steps));
   	
   	ROS_INFO("setpoint %i", midPoint);
-    	
+  	
+  	std_msgs::Int16MultiArray calibrationData;
+  	calibrationData.data.push(minSteps);
+  	calibrationData.data.push(maxSteps);
+  	calibrationPub.publish(calibrationData);
   }
 
   ROS_INFO("================");
@@ -120,9 +126,10 @@ int main(int argc, char **argv)
   ros::Subscriber limitSub = n.subscribe("limit_reached", 10, limitReachedCallBack);
   ros::Subscriber stepsSub = n.subscribe("linear_steps", 10, linearStepsCallBack);
   ros::Publisher speedPub = n.advertise<std_msgs::Int16>("linear_speed", 10);
-  positionPub = n.advertise<std_msgs::Int16>("linear_position_cmd", 10);
 
+  positionPub = n.advertise<std_msgs::Int16>("linear_position_cmd", 10);
   speedModePub = n.advertise<std_msgs::UInt8>("motor_speed_mode_cmd", 10);
+  calibrationPub = n.advertise<std_msgs::Int16MultiArray>("linear_calibration", 10);
 
   ros::Rate loop_rate(10);
 
