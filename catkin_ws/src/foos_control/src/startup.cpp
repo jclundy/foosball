@@ -95,8 +95,8 @@ void limitReachedCallBack(const std_msgs::Int8& msg)
   	ROS_INFO("setpoint %i", midPoint);
   	
   	std_msgs::Int16MultiArray calibrationData;
-  	calibrationData.data.push(minSteps);
-  	calibrationData.data.push(maxSteps);
+  	calibrationData.data.push_back(minSteps);
+  	calibrationData.data.push_back(maxSteps);
   	calibrationPub.publish(calibrationData);
   }
 
