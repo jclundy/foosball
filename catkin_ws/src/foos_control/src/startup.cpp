@@ -3,7 +3,7 @@
 #include "std_msgs/Int16.h"
 #include "std_msgs/Int8.h"
 #include "std_msgs/UInt8.h"
-#include "std_msgs/Int16MultiArray.h"
+#include "foos_control/RailCalibration.h"
 
 typedef struct {
   bool waitingForUserSwitchPress;
@@ -94,9 +94,9 @@ void limitReachedCallBack(const std_msgs::Int8& msg)
   	
   	ROS_INFO("setpoint %i", midPoint);
   	
-  	std_msgs::Int16MultiArray calibrationData;
-  	calibrationData.data.push_back(minSteps);
-  	calibrationData.data.push_back(maxSteps);
+	foos_control::RailCalibration calibrationData;
+  	calibrationData.min = minSteps;
+  	calibrationData.max = maxSteps;
   	calibrationPub.publish(calibrationData);
   }
 
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 
   positionPub = n.advertise<std_msgs::Int16>("linear_position_cmd", 10);
   speedModePub = n.advertise<std_msgs::UInt8>("motor_speed_mode_cmd", 10);
-  calibrationPub = n.advertise<std_msgs::Int16MultiArray>("linear_calibration", 10);
+  calibrationPub = n.advertise<foos_control::RailCalibration>("linear_calibration", 10);
 
   ros::Rate loop_rate(10);
 

@@ -3,7 +3,7 @@
 #include "std_msgs/Int16.h"
 #include "std_msgs/Int8.h"
 #include "std_msgs/UInt8.h"
-#include "std_msgs/Int16MultiArray.h"
+#include "foos_control/RailCalibration.h"
 
 class LinearRail {
 	int maxLimit, minLimit;
@@ -45,10 +45,8 @@ Foosbot::Foosbot() {
 
 Foosbot robot;
 
-void linearCalibrationCallBack(const std_msgs::Int16MultiArray::ConstPtr& array) {
-	int min = array->data[0];
-	int max = array->data[1];
-	robot.rail.setLimits(min, max);
+void linearCalibrationCallBack(const foos_control::RailCalibration& msg) {
+	robot.rail.setLimits(msg.min, msg.max);
 }
 
 int main(int argc, char **argv)
