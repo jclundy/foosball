@@ -47,12 +47,13 @@ Foosbot robot;
 
 void linearCalibrationCallBack(const foos_control::RailCalibration& msg) {
 	robot.rail.setLimits(msg.min, msg.max);
+	ROS_INFO("saving limits min=%i; max=%i", msg.min, msg.max); 
 }
 
 int main(int argc, char **argv)
 {
 
-  ros::init(argc, argv, "startup");
+  ros::init(argc, argv, "supervisor");
   ros::NodeHandle n;
 
   ros::Subscriber limitSub = n.subscribe("linear_calibration", 10, linearCalibrationCallBack);
