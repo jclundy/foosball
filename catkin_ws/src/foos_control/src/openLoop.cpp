@@ -2,6 +2,7 @@
 #include "std_msgs/Int16.h"
 #include "std_msgs/UInt8.h"
 #include "sensor_msgs/Joy.h"
+#include "foos_control/GetLinearCalibration.h"
 
 int16_t linearSpeedRequested;
 int16_t wristSpeedRequested;
@@ -17,6 +18,14 @@ void joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
   wristSpeedRequested = -WRIST_MAX_SPEED*joy->axes[RH_JOY_HORIZONTAL_AXIS_INDEX];
 }
 
+typedef struct {
+  int16_t maxLinearPos;
+  int16_t minLinearPos;
+  
+} controlSettings;
+
+static controlSettings openLoopControlSettings;
+
 int main(int argc, char **argv)
 {
 
@@ -27,7 +36,24 @@ int main(int argc, char **argv)
   ros::Publisher wristSpeedPub = n.advertise<std_msgs::Int16>("wrist_speed", 10);
   ros::Publisher speedModePub = n.advertise<std_msgs::UInt8>("motor_speed_mode_cmd", 10);
 
-	ros::Subscriber joySub = n.subscribe<sensor_msgs::Joy>("joy", 10, joyCallback);
+  ros::Subscriber joySub = n.subscribe<sensor_msgs::Joy>("joy", 10, joyCallback);
+  
+  ros::ServiceClient client = n.serviceClient<foos_control::GetLinearCalibration>("linear_calibration_info");
+
+  foos_control::GetLinearCalibration srv;
+  srv.request.id = 0;
+  
+  if(client.call(srv)) {
+    ROS_INFO("Called linear_calibration_info service");
+    
+    openLoopControlSettings.maxLinearPos = srv.response.max;
+    openLoopControlSettings.minLinearPos = srv.response.min;
+    
+    ROS_INFO("Max : %i, Min : %i", openLoopControlSettings.maxLinearPos, openLoopControlSettings.minLinearPos);
+    
+  } else {
+    ROS_INFO("Failed to call service linear_calibration_info");
+  }
 
   ros::Rate loop_rate(10);
  

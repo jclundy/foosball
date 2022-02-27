@@ -4,6 +4,7 @@
 #include "std_msgs/Int8.h"
 #include "std_msgs/UInt8.h"
 #include "foos_control/RailCalibration.h"
+#include "foos_control/GetLinearCalibration.h"
 
 class LinearRail {
 	int maxLimit, minLimit;
@@ -50,6 +51,14 @@ void linearCalibrationCallBack(const foos_control::RailCalibration& msg) {
 	ROS_INFO("saving limits min=%i; max=%i", msg.min, msg.max); 
 }
 
+bool linearCalibrationRequest(foos_control::GetLinearCalibration::Request  &req, 
+				foos_control::GetLinearCalibration::Response &res) {
+	res.min = robot.rail.getMinLimit();
+	res.max = robot.rail.getMaxLimit();
+	
+	return true;
+}
+
 int main(int argc, char **argv)
 {
 
@@ -57,6 +66,9 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
 
   ros::Subscriber limitSub = n.subscribe("linear_calibration", 10, linearCalibrationCallBack);
+  
+  ros::ServiceServer service = n.advertiseService("linear_calibration_info", linearCalibrationRequest);
+  
   ros::Rate loop_rate(10);
   while (ros::ok())
   {
