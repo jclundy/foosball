@@ -3,7 +3,8 @@
 #include "std_msgs/Int16.h"
 #include "std_msgs/Int8.h"
 #include "std_msgs/UInt8.h"
-#include "std_msgs/Int16MultiArray.h"
+#include "foos_control/RailCalibration.h"
+#include "foos_control/GetLinearCalibration.h"
 
 class LinearRail {
 	int maxLimit, minLimit;
@@ -45,28 +46,32 @@ Foosbot::Foosbot() {
 
 Foosbot robot;
 
-void linearCalibrationCallBack(const std_msgs::Int16MultiArray::ConstPtr& array) {
-	int min = array->data[0];
-	int max = array->data[1];
-	robot.rail.setLimits(min, max);
+void linearCalibrationCallBack(const foos_control::RailCalibration& msg) {
+	robot.rail.setLimits(msg.min, msg.max);
+	ROS_INFO("saving limits min=%i; max=%i", msg.min, msg.max); 
+}
+
+bool linearCalibrationRequest(foos_control::GetLinearCalibration::Request  &req, 
+				foos_control::GetLinearCalibration::Response &res) {
+	res.min = robot.rail.getMinLimit();
+	res.max = robot.rail.getMaxLimit();
+	
+	return true;
 }
 
 int main(int argc, char **argv)
 {
 
-  ros::init(argc, argv, "startup");
+  ros::init(argc, argv, "supervisor");
   ros::NodeHandle n;
 
   ros::Subscriber limitSub = n.subscribe("linear_calibration", 10, linearCalibrationCallBack);
-  ros::Rate loop_rate(10);
-  while (ros::ok())
-  {
-
-
-    ros::spinOnce();
-
-    loop_rate.sleep();
-  }
+  
+  ros::ServiceServer service = n.advertiseService("linear_calibration_info", linearCalibrationRequest);
+  
+  ROS_INFO("Advertising linear calibration info.");
+  
+	ros::spin();
 
 
   return 0;
