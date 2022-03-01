@@ -4,6 +4,8 @@
 #include "sensor_msgs/Joy.h"
 #include "foos_control/GetLinearCalibration.h"
 
+#include <math.h>
+
 int16_t linearSpeedRequested;
 int16_t wristSpeedRequested;
 
@@ -12,19 +14,29 @@ int16_t wristSpeedRequested;
 #define LH_JOY_VERTICAL_AXIS_INDEX 1
 #define RH_JOY_HORIZONTAL_AXIS_INDEX 3
 
+
+static struct {
+  int16_t maxLinearPos;
+  int16_t minLinearPos;
+  int16_t currentPos;
+  float alpha = 1000.0;
+  
+} controlSettings;
+
 void joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 {
   linearSpeedRequested = LINEAR_MAX_SPEED*joy->axes[LH_JOY_VERTICAL_AXIS_INDEX];
   wristSpeedRequested = -WRIST_MAX_SPEED*joy->axes[RH_JOY_HORIZONTAL_AXIS_INDEX];
 }
 
-typedef struct {
-  int16_t maxLinearPos;
-  int16_t minLinearPos;
-  
-} controlSettings;
+void linearStepsCallBack(const std_msgs::Int16& msg) 
+{
+   controlSettings.currentPos = msg.data;
+}
 
-static controlSettings openLoopControlSettings;
+void setAlphaCallBack(const std_msgs::Int16& msg) {
+	controlSettings.alpha = (float) msg.data;
+}
 
 int main(int argc, char **argv)
 {
@@ -37,6 +49,8 @@ int main(int argc, char **argv)
   ros::Publisher speedModePub = n.advertise<std_msgs::UInt8>("motor_speed_mode_cmd", 10);
 
   ros::Subscriber joySub = n.subscribe<sensor_msgs::Joy>("joy", 10, joyCallback);
+  ros::Subscriber stepsSub = n.subscribe("linear_steps", 10, linearStepsCallBack);
+  ros::Subscriber alphaSub = n.subscribe("set_alpha", 10, setAlphaCallBack);
   
   ros::ServiceClient client = n.serviceClient<foos_control::GetLinearCalibration>("linear_calibration_info");
 
@@ -46,10 +60,10 @@ int main(int argc, char **argv)
   if(client.call(srv)) {
     ROS_INFO("Called linear_calibration_info service");
     
-    openLoopControlSettings.maxLinearPos = srv.response.max;
-    openLoopControlSettings.minLinearPos = srv.response.min;
+    controlSettings.maxLinearPos = srv.response.max;
+    controlSettings.minLinearPos = srv.response.min;
     
-    ROS_INFO("Max : %i, Min : %i", openLoopControlSettings.maxLinearPos, openLoopControlSettings.minLinearPos);
+    ROS_INFO("Max : %i, Min : %i", controlSettings.maxLinearPos, controlSettings.minLinearPos);
     
   } else {
     ROS_INFO("Failed to call service linear_calibration_info");
@@ -64,10 +78,18 @@ int main(int argc, char **argv)
   std_msgs::Int16 linearSpeedCmd;
   std_msgs::Int16 wristSpeedCmd;
   
+  
   while (ros::ok())
   {
   
-    linearSpeedCmd.data = linearSpeedRequested;
+    int16_t speedCommand = linearSpeedRequested;
+    
+    int16_t distance = (speedCommand > 0)? (controlSettings.maxLinearPos - controlSettings.currentPos) : (controlSettings.currentPos - controlSettings.minLinearPos);  
+    float scale = tanh(fabs(distance/(controlSettings.alpha)));
+    
+    ROS_INFO("Scale: %f, Distance %i", scale, distance);
+     
+    linearSpeedCmd.data = speedCommand * scale;
     wristSpeedCmd.data = wristSpeedRequested;
     linearSpeedPub.publish(linearSpeedCmd);
     wristSpeedPub.publish(wristSpeedCmd);

@@ -69,15 +69,9 @@ int main(int argc, char **argv)
   
   ros::ServiceServer service = n.advertiseService("linear_calibration_info", linearCalibrationRequest);
   
-  ros::Rate loop_rate(10);
-  while (ros::ok())
-  {
-
-
-    ros::spinOnce();
-
-    loop_rate.sleep();
-  }
+  ROS_INFO("Advertising linear calibration info.");
+  
+	ros::spin();
 
 
   return 0;
