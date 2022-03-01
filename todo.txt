@@ -1,3 +1,14 @@
+Feb 27-28
+Progress
+- added supervisor node
+- saves calibration from startup node
+- uses the max and min positions of the linear rail to reduce speed in the open loop node
+Next steps
+- automatically start supervisor and startup node from launch file
+- once startup calibration is complete automatically enter open loop node
+- tune speed control to work well with higher max speed
+- add kick function
+
 Dec 31 2021
 
 Progress
