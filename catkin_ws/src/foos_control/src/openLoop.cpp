@@ -19,7 +19,7 @@ static struct {
   int16_t maxLinearPos;
   int16_t minLinearPos;
   int16_t currentPos;
-  float alpha = 1000.0;
+  float alpha = 2000.0;
   
 } controlSettings;
 
