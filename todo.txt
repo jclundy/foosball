@@ -1,3 +1,10 @@
+March 2
+Progress
+- implemented logic to automatically exit startup node and start open loop node
+Next steps
+- move joystick and arduino nodes into repository; use single ros launch file
+- add kick function
+
 Feb 27-28
 Progress
 - added supervisor node
