@@ -5,19 +5,18 @@
 #include "std_msgs/UInt8.h"
 #include "foos_control/RailCalibration.h"
 
-typedef struct {
+static struct {
   bool waitingForUserSwitchPress;
   bool forwardDepressed;
   bool rearDepressed;
-} calibration_progress_t;
-
-calibration_progress_t calibrationProgress;
-
-const int16_t DEFAULT_SPEED = 500;
+}  calibrationProgress;
 
 int16_t steps = 0;
 int16_t maxSteps = 0;
 int16_t minSteps = 0;
+int16_t midPoint = 0;
+
+const int16_t DEFAULT_SPEED = 500;
 
 typedef enum {
   REVERSE = -1,
@@ -34,6 +33,7 @@ typedef enum {
 ros::Publisher speedModePub;
 ros::Publisher positionPub;
 ros::Publisher calibrationPub;
+ros::Publisher speedPub;
 int16_t speedCmd = 0;
 
 
@@ -84,7 +84,7 @@ void limitReachedCallBack(const std_msgs::Int8& msg)
   if(calibrationProgress.rearDepressed && calibrationProgress.forwardDepressed) {
   	ROS_INFO("done calibrating");
   	// send command to reset position
-  	int midPoint = (maxSteps + minSteps)/2;
+  	midPoint = (maxSteps + minSteps)/2;
   	
   	std_msgs::Int16 positionCmd;
   	positionCmd.data = midPoint;
@@ -111,6 +111,24 @@ void limitReachedCallBack(const std_msgs::Int8& msg)
 void linearStepsCallBack(const std_msgs::Int16& msg) 
 {
    steps = msg.data;
+   
+   if(calibrationProgress.rearDepressed && calibrationProgress.forwardDepressed) {
+      if(abs(steps - midPoint < 5)){
+        ROS_INFO("finished homing");
+        
+        // reset operation mode to speed control
+        std_msgs::UInt8 speedModeCmd;
+        speedModeCmd.data = LINEAR_MOTOR;
+        speedModePub.publish(speedModeCmd);
+
+        std_msgs::Int16 linearSpeedCmd;
+        linearSpeedCmd.data = 0;
+        speedPub.publish(linearSpeedCmd);
+        
+        system("rosrun foos_control openLoop");
+        ros::shutdown();
+      }
+   }
 }
 
 int main(int argc, char **argv)
@@ -125,7 +143,7 @@ int main(int argc, char **argv)
 
   ros::Subscriber limitSub = n.subscribe("limit_reached", 10, limitReachedCallBack);
   ros::Subscriber stepsSub = n.subscribe("linear_steps", 10, linearStepsCallBack);
-  ros::Publisher speedPub = n.advertise<std_msgs::Int16>("linear_speed", 10);
+  speedPub = n.advertise<std_msgs::Int16>("linear_speed", 10);
 
   positionPub = n.advertise<std_msgs::Int16>("linear_position_cmd", 10);
   speedModePub = n.advertise<std_msgs::UInt8>("motor_speed_mode_cmd", 10);
