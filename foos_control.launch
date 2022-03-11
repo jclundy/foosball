@@ -1,0 +1,6 @@
+<launch>
+  <node pkg="foos_control" type="supervisor" name="supervisor" >
+  </node>
+  <node pkg="foos_control" type="startup" name="startup" >
+  </node>  
+</launch>
