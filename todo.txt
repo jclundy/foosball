@@ -1,3 +1,10 @@
+March 10
+Progress
+- implemented kick function using rear-right trigger joystick to rotate rod at high speed
+Next steps
+- add calibration feature to 'zero' wrist motor steps
+- output wrist motor angle in deg
+
 March 2
 Progress
 - implemented logic to automatically exit startup node and start open loop node
