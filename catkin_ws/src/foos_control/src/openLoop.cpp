@@ -6,14 +6,18 @@
 
 #include <math.h>
 
-int16_t linearSpeedRequested;
-int16_t wristSpeedRequested;
 
 #define LINEAR_MAX_SPEED 7500
 #define WRIST_MAX_SPEED 5000
+#define KICK_SPEED 15000
 #define LH_JOY_VERTICAL_AXIS_INDEX 1
 #define RH_JOY_HORIZONTAL_AXIS_INDEX 3
 
+#define REAR_RIGHT_JOY_INDEX 5
+static struct {
+	int16_t linearSpeed;
+	int16_t wristSpeed;
+} setpoints;
 
 static struct {
   int16_t maxLinearPos;
@@ -25,8 +29,13 @@ static struct {
 
 void joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 {
-  linearSpeedRequested = LINEAR_MAX_SPEED*joy->axes[LH_JOY_VERTICAL_AXIS_INDEX];
-  wristSpeedRequested = -WRIST_MAX_SPEED*joy->axes[RH_JOY_HORIZONTAL_AXIS_INDEX];
+  setpoints.linearSpeed = LINEAR_MAX_SPEED*joy->axes[LH_JOY_VERTICAL_AXIS_INDEX];
+  
+  int16_t wristControlSpeed = -WRIST_MAX_SPEED*joy->axes[RH_JOY_HORIZONTAL_AXIS_INDEX];
+  
+  float rearRightJoystick = joy->axes[REAR_RIGHT_JOY_INDEX]; //nominal 1.0, when triggered -1.0
+  int16_t wristKickSpeed = -KICK_SPEED *(rearRightJoystick - 1)/2;
+  setpoints.wristSpeed = wristKickSpeed + wristControlSpeed;
 }
 
 void linearStepsCallBack(const std_msgs::Int16& msg) 
@@ -82,7 +91,7 @@ int main(int argc, char **argv)
   while (ros::ok())
   {
   
-    int16_t speedCommand = linearSpeedRequested;
+    int16_t speedCommand = setpoints.linearSpeed;
     
     int16_t distance = (speedCommand > 0)? (controlSettings.maxLinearPos - controlSettings.currentPos) : (controlSettings.currentPos - controlSettings.minLinearPos);  
     float scale = tanh(fabs(distance/(controlSettings.alpha)));
@@ -90,7 +99,7 @@ int main(int argc, char **argv)
     ROS_INFO("Scale: %f, Distance %i", scale, distance);
      
     linearSpeedCmd.data = speedCommand * scale;
-    wristSpeedCmd.data = wristSpeedRequested;
+    wristSpeedCmd.data = setpoints.wristSpeed;
     linearSpeedPub.publish(linearSpeedCmd);
     wristSpeedPub.publish(wristSpeedCmd);
 
