@@ -63,6 +63,14 @@ void setControlModeSpeed( const std_msgs::UInt8& cmd_msg) {
   }
 }
 
+void resetStepsCB(const std_msgs::UInt8& cmd_msg) {
+  if(cmd_msg.data == WRIST_MOTOR) {
+    wristMotor.setCurrentPosition(0);
+  } else if (cmd_msg.data == LINEAR_MOTOR) {
+    wristMotor.setCurrentPosition(0);
+  }  
+}
+
 ros::NodeHandle nh;
 ros::Subscriber<std_msgs::Int16> wrist_sub("wrist_speed", wrist_cb);
 ros::Subscriber<std_msgs::Int16> linear_sub("linear_speed", linear_cb);
@@ -71,6 +79,8 @@ ros::Subscriber<std_msgs::Int16> wrist_position_sub("wrist_position_cmd", setWri
 ros::Subscriber<std_msgs::Int16> linear_position_sub("linear_position_cmd", setLinearPositionCB);
 
 ros::Subscriber<std_msgs::UInt8> speed_mode_sub("motor_speed_mode_cmd", setControlModeSpeed);
+
+ros::Subscriber<std_msgs::UInt8> reset_position_sub("reset_steps_cmd", resetStepsCB);
 
 std_msgs::Int16 linearStepsMsg;
 ros::Publisher linearStepsPub("linear_steps", &linearStepsMsg);
@@ -113,6 +123,7 @@ void setup() {
   nh.subscribe(wrist_position_sub);
   nh.subscribe(linear_position_sub);
   nh.subscribe(speed_mode_sub);
+  nh.subscribe(reset_position_sub);
 
   timer.every(100, timerCallback);
 
