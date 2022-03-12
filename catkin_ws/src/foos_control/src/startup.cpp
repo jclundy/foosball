@@ -5,6 +5,8 @@
 #include "std_msgs/UInt8.h"
 #include "foos_control/RailCalibration.h"
 
+#include "control_definitions.h"
+
 static struct {
   bool waitingForUserSwitchPress;
   bool forwardDepressed;
@@ -17,18 +19,6 @@ int16_t minSteps = 0;
 int16_t midPoint = 0;
 
 const int16_t DEFAULT_SPEED = 500;
-
-typedef enum {
-  REVERSE = -1,
-  NEUTRAL = 0,
-  FORWARD = 1,
-} direction_t;
-
-
-typedef enum {
-  WRIST_MOTOR,
-  LINEAR_MOTOR,
-} motor_type_t;
 
 ros::Publisher speedModePub;
 ros::Publisher positionPub;

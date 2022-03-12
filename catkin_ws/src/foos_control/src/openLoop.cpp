@@ -4,16 +4,15 @@
 #include "sensor_msgs/Joy.h"
 #include "foos_control/GetLinearCalibration.h"
 
-#include <math.h>
+#include "joystick_definitions.h"
+#include "control_definitions.h"
 
+#include <math.h>
 
 #define LINEAR_MAX_SPEED 7500
 #define WRIST_MAX_SPEED 5000
 #define KICK_SPEED 15000
-#define LH_JOY_VERTICAL_AXIS_INDEX 1
-#define RH_JOY_HORIZONTAL_AXIS_INDEX 3
 
-#define REAR_RIGHT_JOY_INDEX 5
 static struct {
 	int16_t linearSpeed;
 	int16_t wristSpeed;
