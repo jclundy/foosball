@@ -85,13 +85,19 @@ void linearCalibrationCallBack(const foos_control::RailCalibration& msg) {
 
 void joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 {
-  bool buttonValue = joy->axes[A_BUTTON_INDEX];
+  bool buttonValue = joy->buttons[A_BUTTON_INDEX];
   calibrateWristButton.update(buttonValue);
+  
+  ROS_INFO("button val %i", buttonValue);
+  ROS_INFO("button filtered %f", calibrateWristButton.filteredValue);
+  ROS_INFO("button state %i", calibrateWristButton.currentState);
   
   if(calibrateWristButton.currentState && !calibrateWristButton.prevState) {
       std_msgs::UInt8 resetPositionMsg;
       resetPositionMsg.data = WRIST_MOTOR;
       resetPositionPub.publish(resetPositionMsg);
+      
+      ROS_INFO("button pressed");
   }
   
 }
