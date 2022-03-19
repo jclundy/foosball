@@ -3,11 +3,15 @@ import datetime
 import time
 import cv2
 import numpy as np
+import os
 
 #filePath = "/home/joe/Videos/Webcam/2021-12-05-144129.webm"
 #camera = cv2.VideoCapture(filePath)
 
 camera = cv2.VideoCapture(2)
+
+fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+
 
 whiteLower = (0, 0, 0)
 whiteUpper = (0, 0, 255)
@@ -31,14 +35,41 @@ upper = pinkUpper
 lower = redUpper
 
 firstFrame = None
+
+(grabbed, frame) = camera.read()
+height, width = frame.shape[:2]
+
+output_h = 240
+output_w = 320
+
+ct = datetime.datetime.now()
+timestamp = ct.strftime("%m-%d-%Y_%H:%M:%S")
+fileName1 = 'frame_output_' + timestamp + '.avi'
+fileName2 = 'original_' + timestamp + '.avi'
+
+path = "recordings/" + timestamp
+os.makedirs(path, exist_ok = True)
+
+videoWriters = {}
+fileNames = ['original', 'hsv', 'masked', 'eroded', 'tracker']
+
+for name in fileNames:
+	fileNameOutput = path + '/' + name + '_' + timestamp + '.avi'
+	videoWriters[name] = cv2.VideoWriter(fileNameOutput, fourcc, 20.0, (output_w, output_h))
+
+print("image height and width", height, width)
+
 while True:
 	(grabbed, frame) = camera.read()
 	if not grabbed:
 		camera.set(cv2.CAP_PROP_POS_FRAMES, 0)
 		continue
 
+
 	height, width = frame.shape[:2]
-	frame = cv2.resize(frame,(240, 480), interpolation = cv2.INTER_CUBIC)
+	frame = cv2.resize(frame,(output_w, output_h), interpolation = cv2.INTER_CUBIC)
+	original = frame.copy()
+
 	blurred = cv2.GaussianBlur(frame, (11, 11), 0)
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 	cv2.imshow("hsv", hsv)
@@ -54,7 +85,7 @@ while True:
 
 	mask = cv2.erode(mask, None, iterations=2)
 	mask = cv2.dilate(mask, None, iterations=2)
-	eroded = mask
+	eroded = mask.copy()
 	cv2.imshow("Eroded", eroded)
 	cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
 	cv2.CHAIN_APPROX_SIMPLE)[-2]
@@ -77,11 +108,16 @@ while True:
 			cv2.circle(frame, (int(x), int(y)), int(radius),
 				(0, 255, 255), 2)
 			cv2.circle(frame, center, 5, (0, 0, 255), -1)
-			print("radius: %f\n",radius)	
+			#print("radius: %f\n",radius)	
  
 
 	# show the frame to our screen
 	cv2.imshow("Frame", frame)
+	
+	framesToSave = {'original':original, 'hsv':hsv, 'masked':mask,'eroded':eroded, 'tracker':frame}
+	for name in fileNames:
+		videoWriters[name].write(framesToSave[name])
+	
 	key = cv2.waitKey(1) & 0xFF
  
 	# if the 'q' key is pressed, stop the loop
@@ -90,4 +126,7 @@ while True:
  
 # cleanup the camera and close any open windows
 camera.release()
+
+for name in fileNames:
+		videoWriters[name].release()
 cv2.destroyAllWindows()
