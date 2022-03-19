@@ -1,3 +1,19 @@
+March 18
+Progress
+- added calibration feature to 'zero' wrist motor steps
+- finally have long-term camera mounting system with webcam
+- tested live ball tracking
+
+Next steps
+- record tracker output
+- test out openCV camera calibration
+- do tests with aruco markers
+
+Further development
+- detect table corners with aruco markers
+- mapping b/t camera pixels to real world coordinates
+- make goalie track lateral position of ball
+
 March 10
 Progress
 - implemented kick function using rear-right trigger joystick to rotate rod at high speed
