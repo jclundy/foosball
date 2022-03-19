@@ -4,8 +4,10 @@ import time
 import cv2
 import numpy as np
 
-filePath = "/home/joe/Videos/Webcam/2021-12-05-144129.webm"
-camera = cv2.VideoCapture(filePath)
+#filePath = "/home/joe/Videos/Webcam/2021-12-05-144129.webm"
+#camera = cv2.VideoCapture(filePath)
+
+camera = cv2.VideoCapture(2)
 
 whiteLower = (0, 0, 0)
 whiteUpper = (0, 0, 255)
