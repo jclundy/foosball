@@ -83,9 +83,15 @@ while True:
 	mask = cv2.inRange(hsv, lower, upper)
 	cv2.imshow("Mask", mask)
 
+	mask_to_save = cv2.cvtColor(mask,cv2.COLOR_GRAY2BGR)
+
 	mask = cv2.erode(mask, None, iterations=2)
-	mask = cv2.dilate(mask, None, iterations=2)
+
 	eroded = mask.copy()
+	eroded_to_save = cv2.cvtColor(eroded,cv2.COLOR_GRAY2BGR)
+
+	mask = cv2.dilate(mask, None, iterations=2)
+
 	cv2.imshow("Eroded", eroded)
 	cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
 	cv2.CHAIN_APPROX_SIMPLE)[-2]
@@ -114,7 +120,7 @@ while True:
 	# show the frame to our screen
 	cv2.imshow("Frame", frame)
 	
-	framesToSave = {'original':original, 'hsv':hsv, 'masked':mask,'eroded':eroded, 'tracker':frame}
+	framesToSave = {'original':original, 'hsv':hsv, 'masked':mask_to_save,'eroded':eroded_to_save, 'tracker':frame}
 	for name in fileNames:
 		videoWriters[name].write(framesToSave[name])
 	
