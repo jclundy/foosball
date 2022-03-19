@@ -17,8 +17,6 @@ rostopic pub -1 linear_speed std_msgs/Int16 -- <linear_speed>
 
 #for using joystick
 
-
-
 ls -l /dev/input/js0
 
 # if not rw enabled
@@ -37,3 +35,10 @@ rosrun foos_control startup
 
 #kill roscore
 killall -9 rosmaster
+
+# ball tracking
+# view webcams
+ls -ltrh /dev/video*
+
+#run ball tracker
+python colorTracker.py
