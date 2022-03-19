@@ -51,7 +51,7 @@ path = "recordings/" + timestamp
 os.makedirs(path, exist_ok = True)
 
 videoWriters = {}
-fileNames = ['original', 'hsv', 'masked', 'eroded', 'tracker']
+fileNames = ['original', 'masked', 'eroded', 'dilated', 'tracker']
 
 for name in fileNames:
 	fileNameOutput = path + '/' + name + '_' + timestamp + '.avi'
@@ -82,17 +82,19 @@ while True:
 
 	mask = cv2.inRange(hsv, lower, upper)
 	cv2.imshow("Mask", mask)
-
 	mask_to_save = cv2.cvtColor(mask,cv2.COLOR_GRAY2BGR)
 
 	mask = cv2.erode(mask, None, iterations=2)
 
 	eroded = mask.copy()
 	eroded_to_save = cv2.cvtColor(eroded,cv2.COLOR_GRAY2BGR)
-
-	mask = cv2.dilate(mask, None, iterations=2)
-
 	cv2.imshow("Eroded", eroded)
+	
+	mask = cv2.dilate(mask, None, iterations=2)
+	dilated = mask.copy()
+	dilated_to_save = cv2.cvtColor(dilated,cv2.COLOR_GRAY2BGR)
+	cv2.imshow("Dilated", dilated)
+
 	cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
 	cv2.CHAIN_APPROX_SIMPLE)[-2]
 	center = None
@@ -120,7 +122,7 @@ while True:
 	# show the frame to our screen
 	cv2.imshow("Frame", frame)
 	
-	framesToSave = {'original':original, 'hsv':hsv, 'masked':mask_to_save,'eroded':eroded_to_save, 'tracker':frame}
+	framesToSave = {'original':original, 'masked':mask_to_save,'eroded':eroded_to_save, 'dilated':dilated_to_save, 'tracker':frame}
 	for name in fileNames:
 		videoWriters[name].write(framesToSave[name])
 	
