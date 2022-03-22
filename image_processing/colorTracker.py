@@ -5,10 +5,27 @@ import cv2
 import numpy as np
 import os
 
-#filePath = "/home/joe/Videos/Webcam/2021-12-05-144129.webm"
-#camera = cv2.VideoCapture(filePath)
+import yaml
 
-camera = cv2.VideoCapture(2)
+calibrationFile = open('camera.yaml', 'r')
+calibrationData = yaml.safe_load(calibrationFile)
+
+camera_matrix = calibrationData['camera_matrix']
+numColumns = camera_matrix['cols']
+numRows =  camera_matrix['rows']
+cameraMatrix = np.array(camera_matrix['data'])
+cameraMatrix = np.reshape(cameraMatrix, (numRows, numColumns))
+
+distortion_coefficients = calibrationData['distortion_coefficients']
+numColumns = distortion_coefficients['cols']
+numRows =  distortion_coefficients['rows']
+distortionCoefficients = np.array(distortion_coefficients['data'])
+distortionCoefficients = np.reshape(distortionCoefficients, (numRows, numColumns))
+
+filePath = "/home/joe/Videos/Webcam/2021-12-05-144129.webm"
+camera = cv2.VideoCapture(filePath)
+
+#camera = cv2.VideoCapture(3)
 
 fourcc = cv2.VideoWriter_fourcc(*'DIVX')
 
@@ -66,9 +83,13 @@ while True:
 		continue
 
 
-	height, width = frame.shape[:2]
-	frame = cv2.resize(frame,(output_w, output_h), interpolation = cv2.INTER_CUBIC)
 	original = frame.copy()
+
+	height, width = frame.shape[:2]
+	frame = cv2.undistort(frame, cameraMatrix, distortionCoefficients) 
+
+	undistorted = frame.copy()
+	frame = cv2.resize(frame,(output_w, output_h), interpolation = cv2.INTER_CUBIC)
 
 	blurred = cv2.GaussianBlur(frame, (11, 11), 0)
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -121,6 +142,10 @@ while True:
 
 	# show the frame to our screen
 	cv2.imshow("Frame", frame)
+	
+	cv2.imshow("undistorted", undistorted) 
+	
+	cv2.imshow("original", original)
 	
 	framesToSave = {'original':original, 'masked':mask_to_save,'eroded':eroded_to_save, 'dilated':dilated_to_save, 'tracker':frame}
 	for name in fileNames:
