@@ -22,10 +22,10 @@ numRows =  distortion_coefficients['rows']
 distortionCoefficients = np.array(distortion_coefficients['data'])
 distortionCoefficients = np.reshape(distortionCoefficients, (numRows, numColumns))
 
-filePath = "/home/joe/Videos/Webcam/2021-12-05-144129.webm"
-camera = cv2.VideoCapture(filePath)
+#filePath = "/home/joe/Videos/Webcam/2021-12-05-144129.webm"
+#camera = cv2.VideoCapture(filePath)
 
-#camera = cv2.VideoCapture(3)
+camera = cv2.VideoCapture(2)
 
 fourcc = cv2.VideoWriter_fourcc(*'DIVX')
 
@@ -55,6 +55,7 @@ firstFrame = None
 
 (grabbed, frame) = camera.read()
 height, width = frame.shape[:2]
+
 
 output_h = 240
 output_w = 320
@@ -86,7 +87,10 @@ while True:
 	original = frame.copy()
 
 	height, width = frame.shape[:2]
-	frame = cv2.undistort(frame, cameraMatrix, distortionCoefficients) 
+	w = width
+	h = height
+	newcameramtx, roi=cv2.getOptimalNewCameraMatrix(cameraMatrix,distortionCoefficients,(w,h),1,(w,h))
+	frame = cv2.undistort(frame, cameraMatrix, distortionCoefficients, None, newcameramtx) 
 
 	undistorted = frame.copy()
 	frame = cv2.resize(frame,(output_w, output_h), interpolation = cv2.INTER_CUBIC)
