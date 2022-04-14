@@ -69,7 +69,7 @@ path = "recordings/" + timestamp
 os.makedirs(path, exist_ok = True)
 
 videoWriters = {}
-fileNames = ['original', 'masked', 'eroded', 'dilated', 'tracker']
+fileNames = ['original', 'undistorted', 'masked', 'eroded', 'dilated', 'tracker']
 
 for name in fileNames:
 	fileNameOutput = path + '/' + name + '_' + timestamp + '.avi'
@@ -151,7 +151,7 @@ while True:
 	
 	cv2.imshow("original", original)
 	
-	framesToSave = {'original':original, 'masked':mask_to_save,'eroded':eroded_to_save, 'dilated':dilated_to_save, 'tracker':frame}
+	framesToSave = {'original':original, 'undistorted':undistorted, 'masked':mask_to_save,'eroded':eroded_to_save, 'dilated':dilated_to_save, 'tracker':frame}
 	for name in fileNames:
 		videoWriters[name].write(framesToSave[name])
 	
@@ -165,5 +165,5 @@ while True:
 camera.release()
 
 for name in fileNames:
-		videoWriters[name].release()
+	videoWriters[name].release()
 cv2.destroyAllWindows()
