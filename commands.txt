@@ -51,4 +51,4 @@ rosrun cv_camera cv_camera_node
 rosrun image_view image_view image:=cv_camera/image_raw
 
 #run camera calibration
-rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.108 image:=/camera/image_raw camera:=/camera
+rosrun camera_calibration cameracalibrator.py --size 10x7 --square 0.021 image:=/cv_camera/image_raw camera:=/cv_camera
