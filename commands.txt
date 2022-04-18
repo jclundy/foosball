@@ -52,3 +52,8 @@ rosrun image_view image_view image:=cv_camera/image_raw
 
 #run camera calibration
 rosrun camera_calibration cameracalibrator.py --size 10x7 --square 0.021 image:=/cv_camera/image_raw camera:=/cv_camera
+
+#use ros image_proc library
+ROS_NAMESPACE=cv_camera rosrun image_proc image_proc
+
+rosrun image_view image_view image:=my_camera/image_rect_color
