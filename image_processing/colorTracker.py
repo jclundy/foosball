@@ -161,6 +161,14 @@ while True:
 	frame = cv2.resize(frame,(output_w, output_h), interpolation = cv2.INTER_CUBIC)
 
 	blurred = cv2.GaussianBlur(frame, (11, 11), 0)
+	
+	regionMask = np.zeros(frame.shape, dtype=np.uint8)
+	channel_count = frame.shape[2]
+	ignoreMaskColor = (255,)*channel_count
+	cv2.fillPoly(regionMask, [boundingBoxPoints], ignoreMaskColor)
+	
+	frame = cv2.bitwise_and(frame, regionMask)
+	
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 	cv2.imshow("hsv", hsv)
 	if firstFrame is None:
