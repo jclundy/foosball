@@ -7,7 +7,7 @@ import os
 
 import yaml
 
-calibrationFile = open('camera.yaml', 'r')
+calibrationFile = open('calibrations/calibration2.yaml', 'r')
 calibrationData = yaml.safe_load(calibrationFile)
 
 camera_matrix = calibrationData['camera_matrix']
@@ -22,7 +22,7 @@ numRows =  distortion_coefficients['rows']
 distortionCoefficients = np.array(distortion_coefficients['data'])
 distortionCoefficients = np.reshape(distortionCoefficients, (numRows, numColumns))
 
-#filePath = "/home/joe/Videos/Webcam/2021-12-05-144129.webm"
+#filePath = "/home/joe/Videos/Webcam/2022-04-18-152911.webm"
 #camera = cv2.VideoCapture(filePath)
 
 camera = cv2.VideoCapture(2)
@@ -57,8 +57,8 @@ firstFrame = None
 height, width = frame.shape[:2]
 
 
-output_h = 240
-output_w = 320
+output_h = height  #240
+output_w = width #320
 
 ct = datetime.datetime.now()
 timestamp = ct.strftime("%m-%d-%Y_%H:%M:%S")
@@ -77,6 +77,13 @@ for name in fileNames:
 
 print("image height and width", height, width)
 
+arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+arucoParams = cv2.aruco.DetectorParameters_create()
+
+
+ballDetectionCorners = [(0,0), (0, height), (height,width), (0,width)]
+
+
 while True:
 	(grabbed, frame) = camera.read()
 	if not grabbed:
@@ -93,6 +100,64 @@ while True:
 	frame = cv2.undistort(frame, cameraMatrix, distortionCoefficients, None, newcameramtx) 
 
 	undistorted = frame.copy()
+
+	diagnosticFrame = frame.copy()
+
+	(corners, ids, rejected) = cv2.aruco.detectMarkers(frame, arucoDict, parameters=arucoParams)
+	if(len(corners) > 0):
+		ids = ids.flatten()
+
+		for(markerCorner, markerID) in zip(corners, ids):
+			corners = markerCorner.reshape((4,2))
+			(topLeft, topRight, bottomRight, bottomLeft) = corners
+
+
+			# convert each of the (x, y)-coordinate pairs to integers
+			topRight = (int(topRight[0]), int(topRight[1]))
+			bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+			bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+			topLeft = (int(topLeft[0]), int(topLeft[1]))
+
+
+			cv2.line(diagnosticFrame, topLeft, topRight, (0, 255, 0), 2)
+			cv2.line(diagnosticFrame, topRight, bottomRight, (0, 255, 0), 2)
+			cv2.line(diagnosticFrame, bottomRight, bottomLeft, (0, 255, 0), 2)
+			cv2.line(diagnosticFrame, bottomLeft, topLeft, (0, 255, 0), 2)
+
+			if(markerID >= 0 and markerID <= 3):
+				newCorner = (0,0)
+				if(markerID == 0):
+					newCorner = topRight
+				elif (markerID == 1):
+					newCorner = bottomRight
+				elif (markerID == 2):
+					newCorner = bottomLeft
+				elif (markerID == 3):
+					newCorner = topLeft
+				ballDetectionCorners[markerID] = newCorner
+
+	if(len(rejected) > 0):
+		for(markerCorner) in rejected:
+			rejected = markerCorner.reshape((4,2))
+			(topLeft, topRight, bottomRight, bottomLeft) = rejected
+
+			# convert each of the (x, y)-coordinate pairs to integers
+			topRight = (int(topRight[0]), int(topRight[1]))
+			bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+			bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+			topLeft = (int(topLeft[0]), int(topLeft[1]))
+
+			cv2.line(diagnosticFrame, topLeft, topRight, (0, 0, 255), 2)
+			cv2.line(diagnosticFrame, topRight, bottomRight, (0, 0, 255), 2)
+			cv2.line(diagnosticFrame, bottomRight, bottomLeft, (0, 0, 255), 2)
+			cv2.line(diagnosticFrame, bottomLeft, topLeft, (0, 0, 255), 2)
+
+	#draw bounding box
+	boundingBoxPoints = np.array(ballDetectionCorners)
+	boundingBoxPoints.reshape((-1,1,2))
+	cv2.polylines(diagnosticFrame, [boundingBoxPoints], True, (255, 0, 0), 2)
+	
+
 	frame = cv2.resize(frame,(output_w, output_h), interpolation = cv2.INTER_CUBIC)
 
 	blurred = cv2.GaussianBlur(frame, (11, 11), 0)
@@ -140,20 +205,20 @@ while True:
 			# then update the list of tracked points
 			cv2.circle(frame, (int(x), int(y)), int(radius),
 				(0, 255, 255), 2)
-			cv2.circle(frame, center, 5, (0, 0, 255), -1)
-			#print("radius: %f\n",radius)	
- 
+			cv2.circle(diagnosticFrame, center, 5, (0, 0, 255), -1)
+			#print("radius: %f\n",radius)
+
 
 	# show the frame to our screen
-	cv2.imshow("Frame", frame)
+	cv2.imshow("Frame", diagnosticFrame)
 	
 	cv2.imshow("undistorted", undistorted) 
 	
 	cv2.imshow("original", original)
 	
-	framesToSave = {'original':original, 'undistorted':undistorted, 'masked':mask_to_save,'eroded':eroded_to_save, 'dilated':dilated_to_save, 'tracker':frame}
-	for name in fileNames:
-		videoWriters[name].write(framesToSave[name])
+	framesToSave = {'original':original, 'undistorted':undistorted, 'masked':mask_to_save,'eroded':eroded_to_save, 'dilated':dilated_to_save, 'tracker':diagnosticFrame}
+#	for name in fileNames:
+#		videoWriters[name].write(framesToSave[name])
 	
 	key = cv2.waitKey(1) & 0xFF
  
