@@ -22,10 +22,10 @@ numRows =  distortion_coefficients['rows']
 distortionCoefficients = np.array(distortion_coefficients['data'])
 distortionCoefficients = np.reshape(distortionCoefficients, (numRows, numColumns))
 
-#filePath = "/home/joe/Videos/Webcam/2022-04-18-152911.webm"
-#camera = cv2.VideoCapture(filePath)
+filePath = "/home/joe/Videos/Webcam/2022-04-20-210347.webm"
+camera = cv2.VideoCapture(filePath)
 
-camera = cv2.VideoCapture(2)
+#camera = cv2.VideoCapture(2)
 
 fourcc = cv2.VideoWriter_fourcc(*'DIVX')
 
@@ -136,6 +136,7 @@ while True:
 					newCorner = topLeft
 				ballDetectionCorners[markerID] = newCorner
 
+	"""
 	if(len(rejected) > 0):
 		for(markerCorner) in rejected:
 			rejected = markerCorner.reshape((4,2))
@@ -151,7 +152,7 @@ while True:
 			cv2.line(diagnosticFrame, topRight, bottomRight, (0, 0, 255), 2)
 			cv2.line(diagnosticFrame, bottomRight, bottomLeft, (0, 0, 255), 2)
 			cv2.line(diagnosticFrame, bottomLeft, topLeft, (0, 0, 255), 2)
-
+	"""
 	#draw bounding box
 	boundingBoxPoints = np.array(ballDetectionCorners)
 	boundingBoxPoints.reshape((-1,1,2))
@@ -160,14 +161,15 @@ while True:
 
 	frame = cv2.resize(frame,(output_w, output_h), interpolation = cv2.INTER_CUBIC)
 
-	blurred = cv2.GaussianBlur(frame, (11, 11), 0)
+	frame = cv2.GaussianBlur(frame, (11, 11), 0)
+	blurred = frame.copy()
 	
 	regionMask = np.zeros(frame.shape, dtype=np.uint8)
 	channel_count = frame.shape[2]
 	ignoreMaskColor = (255,)*channel_count
 	cv2.fillPoly(regionMask, [boundingBoxPoints], ignoreMaskColor)
 	
-	frame = cv2.bitwise_and(frame, regionMask)
+	#frame = cv2.bitwise_and(frame, regionMask)
 	
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 	cv2.imshow("hsv", hsv)
@@ -188,7 +190,7 @@ while True:
 	eroded_to_save = cv2.cvtColor(eroded,cv2.COLOR_GRAY2BGR)
 	cv2.imshow("Eroded", eroded)
 	
-	mask = cv2.dilate(mask, None, iterations=2)
+	mask = cv2.dilate(mask, None, iterations=4)
 	dilated = mask.copy()
 	dilated_to_save = cv2.cvtColor(dilated,cv2.COLOR_GRAY2BGR)
 	cv2.imshow("Dilated", dilated)
@@ -198,35 +200,34 @@ while True:
 	center = None
  
 	# only proceed if at least one contour was found
-	if len(cnts) > 0:
+	#if len(cnts) > 0:
+	for c in cnts:
 		# find the largest contour in the mask, then use
 		# it to compute the minimum enclosing circle and
 		# centroid
-		c = max(cnts, key=cv2.contourArea)
+		#c = max(cnts, key=cv2.contourArea)
 		((x, y), radius) = cv2.minEnclosingCircle(c)
 		M = cv2.moments(c)
 		center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
  
 		# only proceed if the radius meets a minimum size
-		if( radius > 5):
-			# draw the circle and centroid on the frame,
-			# then update the list of tracked points
-			cv2.circle(frame, (int(x), int(y)), int(radius),
-				(0, 255, 255), 2)
-			cv2.circle(diagnosticFrame, center, 5, (0, 0, 255), -1)
-			#print("radius: %f\n",radius)
+		#if( radius > 5):
+		# draw the circle and centroid on the frame,
+		# then update the list of tracked points
+		cv2.circle(diagnosticFrame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
+		cv2.circle(diagnosticFrame, center, 5, (0, 0, 255), -1)
+		#print("radius: %f\n",radius)
 
 
 	# show the frame to our screen
-	cv2.imshow("Frame", diagnosticFrame)
-	
-	cv2.imshow("undistorted", undistorted) 
-	
 	cv2.imshow("original", original)
+	cv2.imshow("Tracking", diagnosticFrame)
+	cv2.imshow("undistorted", undistorted) 
+	cv2.imshow("Blurred", blurred)
 	
 	framesToSave = {'original':original, 'undistorted':undistorted, 'masked':mask_to_save,'eroded':eroded_to_save, 'dilated':dilated_to_save, 'tracker':diagnosticFrame}
-#	for name in fileNames:
-#		videoWriters[name].write(framesToSave[name])
+	for name in fileNames:
+		videoWriters[name].write(framesToSave[name])
 	
 	key = cv2.waitKey(1) & 0xFF
  
