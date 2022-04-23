@@ -169,7 +169,7 @@ while True:
 	ignoreMaskColor = (255,)*channel_count
 	cv2.fillPoly(regionMask, [boundingBoxPoints], ignoreMaskColor)
 	
-	#frame = cv2.bitwise_and(frame, regionMask)
+	frame = cv2.bitwise_and(frame, regionMask)
 	
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 	cv2.imshow("hsv", hsv)
