@@ -22,7 +22,8 @@ numRows =  distortion_coefficients['rows']
 distortionCoefficients = np.array(distortion_coefficients['data'])
 distortionCoefficients = np.reshape(distortionCoefficients, (numRows, numColumns))
 
-filePath = "/home/joe/Videos/Webcam/2022-04-20-210347.webm"
+filePath = "/home/joe/Videos/foos_rectified2.avi"
+#filePath = "/home/joe/Videos/Webcam/2022-04-20-210347.webm"
 camera = cv2.VideoCapture(filePath)
 
 #camera = cv2.VideoCapture(2)
@@ -96,11 +97,12 @@ while True:
 	height, width = frame.shape[:2]
 	w = width
 	h = height
+	"""
 	newcameramtx, roi=cv2.getOptimalNewCameraMatrix(cameraMatrix,distortionCoefficients,(w,h),1,(w,h))
 	frame = cv2.undistort(frame, cameraMatrix, distortionCoefficients, None, newcameramtx) 
-
 	undistorted = frame.copy()
-
+	"""
+	undistorted = frame.copy()
 	diagnosticFrame = frame.copy()
 
 	(corners, ids, rejected) = cv2.aruco.detectMarkers(frame, arucoDict, parameters=arucoParams)
