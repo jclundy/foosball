@@ -1,3 +1,7 @@
+#starting jupyter notebook
+jupyter notebook notebook.ipynb
+
+#ROS
 roscore
 
 #for subscribing to msgs from arduino
