@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 import yaml
-
+"""
 calibrationFile = open('calibrations/calibration2.yaml', 'r')
 calibrationData = yaml.safe_load(calibrationFile)
 
@@ -21,6 +21,13 @@ numColumns = distortion_coefficients['cols']
 numRows =  distortion_coefficients['rows']
 distortionCoefficients = np.array(distortion_coefficients['data'])
 distortionCoefficients = np.reshape(distortionCoefficients, (numRows, numColumns))
+"""
+
+mtx = [[798.86256178, 0, 401.52277111], [ 0, 812.90563717,319.32828483], [  0, 0,1.]]
+cameraMatrix = np.reshape(mtx, (3, 3))
+dist = [-3.51591693e-01, 1.92604733e-01, 3.20674878e-04, 1.56190371e-04, -1.16111572e-01]
+
+distortionCoefficients = np.array(dist)
 
 #filePath = "/home/joe/Videos/foos_rectified2.avi"
 filePath = "/home/joe/Videos/Webcam/2022-04-20-210347.webm"
@@ -84,6 +91,9 @@ arucoParams = cv2.aruco.DetectorParameters_create()
 
 ballDetectionCorners = [(0,0), (0, height), (height,width), (0,width)]
 
+newWidth = 0;
+newHeight = 0;
+M = None;
 
 while True:
 	(grabbed, frame) = camera.read()
@@ -96,21 +106,22 @@ while True:
 
 	height, width = frame.shape[:2]
 
-	"""
+	w = width
+	h = height
 	newcameramtx, roi=cv2.getOptimalNewCameraMatrix(cameraMatrix,distortionCoefficients,(w,h),1,(w,h))
 	frame = cv2.undistort(frame, cameraMatrix, distortionCoefficients, None, newcameramtx) 
+
 	undistorted = frame.copy()
-	"""
-	undistorted = frame.copy()
+
 	diagnosticFrame = frame.copy()
 
-	(corners, ids, rejected) = cv2.aruco.detectMarkers(frame, arucoDict, parameters=arucoParams)
-	if(len(corners) > 0):
+	(arucoCorners, ids, rejected) = cv2.aruco.detectMarkers(frame, arucoDict, parameters=arucoParams)
+	if(len(arucoCorners) > 0):
 		ids = ids.flatten()
 
-		for(markerCorner, markerID) in zip(corners, ids):
-			corners = markerCorner.reshape((4,2))
-			(topLeft, topRight, bottomRight, bottomLeft) = corners
+		for(markerCorner, markerID) in zip(arucoCorners, ids):
+			arucoCorners = markerCorner.reshape((4,2))
+			(topLeft, topRight, bottomRight, bottomLeft) = arucoCorners
 
 
 			# convert each of the (x, y)-coordinate pairs to integers
@@ -136,6 +147,46 @@ while True:
 				elif (markerID == 3):
 					newCorner = topLeft
 				ballDetectionCorners[markerID] = newCorner
+
+			if(M == None):
+				bl = np.int32(arucoCorners[0].reshape((4,2))[1])
+				bl = tuple(bl)
+							     
+				br = np.int32(arucoCorners[1].reshape((4,2))[0])
+				br = tuple(br)
+
+				tl = np.int32(arucoCorners[2].reshape((4,2))[2])
+				tl = tuple(tl)
+
+				tr = np.int32(arucoCorners[3].reshape((4,2))[3])
+				tr = tuple(tr)
+				
+				pointsBefore = [tl, tr, br, bl]
+				
+				pixelWidth1 = np.abs(tl[0] - tr[0])
+				pixelWidth2 = np.abs(bl[0] - br[0])
+
+
+				pixelHeight1 = np.abs(tl[1] - bl[1])
+				pixelHeight2 = np.abs(br[1] - tr[1])
+				
+				newWidth = max(pixelWidth1, pixelWidth2)
+				newHeight = max(pixelHeight1, pixelHeight2)
+				#tl, tr, br, bl
+				newCoordinates = [(0,0), (newWidth, 0), (newWidth, newHeight), (0, newHeight)]
+
+				pointsBefore = np.float32(pointsBefore)
+				newCoordinates = np.float32(newCoordinates)
+				M = cv2.getPerspectiveTransform(pointsBefore,newCoordinates)
+				
+								
+				output_h = newHeight  #240
+				output_w = newWidth #320
+
+	if(M != None) :
+		frame = cv2.warpPerspective(newFrame, M, (int(newWidth), int(newHeight)))
+
+	warped = frame.copy()
 
 	"""
 	if(len(rejected) > 0):
@@ -222,9 +273,10 @@ while True:
 
 	# show the frame to our screen
 	cv2.imshow("original", original)
-	cv2.imshow("Tracking", diagnosticFrame)
 	cv2.imshow("undistorted", undistorted) 
+	cv2.imshow("warped", warped)
 	cv2.imshow("Blurred", blurred)
+	cv2.imshow("Tracking", diagnosticFrame)
 	
 	framesToSave = {'original':original, 'undistorted':undistorted, 'masked':mask_to_save,'eroded':eroded_to_save, 'dilated':dilated_to_save, 'tracker':diagnosticFrame}
 	for name in fileNames:
