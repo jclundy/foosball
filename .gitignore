@@ -3,3 +3,4 @@ catkin_ws/devel/*
 *.swp
 recordings/*
 *.avi
+*.png
