@@ -155,47 +155,33 @@ while True:
 					newCorner = topLeft
 				ballDetectionCorners[markerID] = newCorner
 
-			if(not M_transform_initialized):
-				print(corners[0])
-				bl = np.int32(arucoCorners[0].reshape((4,2))[1])
-				bl = tuple(bl)
-							     
-				br = np.int32(arucoCorners[1].reshape((4,2))[0])
-				br = tuple(br)
+		if(not M_transform_initialized):
+			newWidth = 800
+			newHeight = 600
+			#tl, tr, br, bl
 
-				tl = np.int32(arucoCorners[2].reshape((4,2))[2])
-				tl = tuple(tl)
+			#RB, RT, LT, LB
+			newCoordinates = [(newWidth, newHeight), (newWidth, 0), (0,0), (0, newHeight)]
 
-				tr = np.int32(arucoCorners[3].reshape((4,2))[3])
-				tr = tuple(tr)
-				
-				pointsBefore = [tl, tr, br, bl]
-				
-				pixelWidth1 = np.abs(tl[0] - tr[0])
-				pixelWidth2 = np.abs(bl[0] - br[0])
+			pointsBefore = np.float32(ballDetectionCorners)
+			newCoordinates = np.float32(newCoordinates)
 
+			print("points before", pointsBefore)
+			print("newCoordinates", newCoordinates)
+			M_transform = cv2.getPerspectiveTransform(pointsBefore,newCoordinates)
+			M_transform_initialized = True
+			print(M_transform)
 
-				pixelHeight1 = np.abs(tl[1] - bl[1])
-				pixelHeight2 = np.abs(br[1] - tr[1])
-				
-				newWidth = max(pixelWidth1, pixelWidth2)
-				newHeight = max(pixelHeight1, pixelHeight2)
-				#tl, tr, br, bl
-				newCoordinates = [(0,0), (newWidth, 0), (newWidth, newHeight), (0, newHeight)]
-
-				pointsBefore = np.float32(pointsBefore)
-				newCoordinates = np.float32(newCoordinates)
-				M_transform = cv2.getPerspectiveTransform(pointsBefore,newCoordinates)
-				M_transform_initialized = True
-				print(M_transform)
-								
-				output_h = newHeight  #240
-				output_w = newWidth #320
+			print("new dimensions: ",(newHeight, newWidth))
+			print("ball detection corners", ballDetectionCorners)
+							
+			output_h = newHeight  #240
+			output_w = newWidth #320
+			warped_original = cv2.warpPerspective(frame, M_transform, (int(newWidth), int(newHeight)))
+			cv2.imshow("Warped 0", warped_original)
 
 	if(M_transform_initialized) :
-		frame = cv2.warpPerspective(frame, M_transform, (int(newWidth), int(newHeight)))
-
-	warped = frame.copy()
+		warped = cv2.warpPerspective(frame, M_transform, (int(newWidth), int(newHeight)))
 
 	"""
 	if(len(rejected) > 0):
