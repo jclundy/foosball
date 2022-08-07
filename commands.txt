@@ -1,6 +1,10 @@
 #starting jupyter notebook
 jupyter notebook notebook.ipynb
 
+#To fix error with cv2. imshow QObject::moveToThread: Current thread is not the object's thread Cannot move to target thread
+#disable anaconda - this can be done in .bashrc by commenting out 
+#export PATH="/home/joe/anaconda3/bin:$PATH"
+
 #ROS
 roscore
 
