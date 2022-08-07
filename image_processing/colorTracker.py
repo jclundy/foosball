@@ -116,7 +116,7 @@ while True:
 
 	undistorted = frame.copy()
 
-	diagnosticFrame = frame.copy()
+	arucoFrame = frame.copy()
 
 	all_zeros = not np.any(M_transform)
 
@@ -138,10 +138,10 @@ while True:
 			topLeft = (int(topLeft[0]), int(topLeft[1]))
 
 
-			cv2.line(diagnosticFrame, topLeft, topRight, (0, 255, 0), 2)
-			cv2.line(diagnosticFrame, topRight, bottomRight, (0, 255, 0), 2)
-			cv2.line(diagnosticFrame, bottomRight, bottomLeft, (0, 255, 0), 2)
-			cv2.line(diagnosticFrame, bottomLeft, topLeft, (0, 255, 0), 2)
+			cv2.line(arucoFrame, topLeft, topRight, (0, 255, 0), 2)
+			cv2.line(arucoFrame, topRight, bottomRight, (0, 255, 0), 2)
+			cv2.line(arucoFrame, bottomRight, bottomLeft, (0, 255, 0), 2)
+			cv2.line(arucoFrame, bottomLeft, topLeft, (0, 255, 0), 2)
 
 			if(markerID >= 0 and markerID <= 3):
 				newCorner = (0,0)
@@ -158,8 +158,6 @@ while True:
 		if(not M_transform_initialized):
 			newWidth = 800
 			newHeight = 600
-			#tl, tr, br, bl
-
 			#RB, RT, LT, LB
 			newCoordinates = [(newWidth, newHeight), (newWidth, 0), (0,0), (0, newHeight)]
 
@@ -174,15 +172,12 @@ while True:
 
 			print("new dimensions: ",(newHeight, newWidth))
 			print("ball detection corners", ballDetectionCorners)
-							
-			output_h = newHeight  #240
-			output_w = newWidth #320
-			warped_original = cv2.warpPerspective(frame, M_transform, (int(newWidth), int(newHeight)))
-			cv2.imshow("Warped 0", warped_original)
 
 	if(M_transform_initialized) :
-		warped = cv2.warpPerspective(frame, M_transform, (int(newWidth), int(newHeight)))
+		frame = cv2.warpPerspective(frame, M_transform, (int(newWidth), int(newHeight)))
 
+	warped = frame.copy()
+	tracker = frame.copy()
 	"""
 	if(len(rejected) > 0):
 		for(markerCorner) in rejected:
@@ -203,7 +198,7 @@ while True:
 	#draw bounding box
 	boundingBoxPoints = np.array(ballDetectionCorners)
 	boundingBoxPoints.reshape((-1,1,2))
-	cv2.polylines(diagnosticFrame, [boundingBoxPoints], True, (255, 0, 0), 2)
+	cv2.polylines(arucoFrame, [boundingBoxPoints], True, (255, 0, 0), 2)
 	
 
 	frame = cv2.resize(frame,(output_w, output_h), interpolation = cv2.INTER_CUBIC)
@@ -211,13 +206,16 @@ while True:
 	frame = cv2.GaussianBlur(frame, (11, 11), 0)
 	blurred = frame.copy()
 	
+	"""	
+	This is no longer necessary after applying the perspective transform, which also cropped out the region we weren't interested in
 	regionMask = np.zeros(frame.shape, dtype=np.uint8)
 	channel_count = frame.shape[2]
 	ignoreMaskColor = (255,)*channel_count
 	cv2.fillPoly(regionMask, [boundingBoxPoints], ignoreMaskColor)
 	
 	frame = cv2.bitwise_and(frame, regionMask)
-	
+	"""
+
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 	cv2.imshow("hsv", hsv)
 	if firstFrame is None:
@@ -261,8 +259,8 @@ while True:
 		#if( radius > 5):
 		# draw the circle and centroid on the frame,
 		# then update the list of tracked points
-		cv2.circle(diagnosticFrame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
-		cv2.circle(diagnosticFrame, center, 5, (0, 0, 255), -1)
+		cv2.circle(tracker, (int(x), int(y)), int(radius), (0, 255, 255), 2)
+		cv2.circle(tracker, center, 5, (0, 0, 255), -1)
 		#print("radius: %f\n",radius)
 
 
@@ -271,9 +269,10 @@ while True:
 	cv2.imshow("undistorted", undistorted) 
 	cv2.imshow("warped", warped)
 	cv2.imshow("Blurred", blurred)
-	cv2.imshow("Tracking", diagnosticFrame)
+	cv2.imshow("Tracking", tracker)
+	cv2.imshow("aruco", arucoFrame)
 	
-	framesToSave = {'original':original, 'undistorted':undistorted, 'masked':mask_to_save,'eroded':eroded_to_save, 'dilated':dilated_to_save, 'tracker':diagnosticFrame}
+	framesToSave = {'original':original, 'undistorted':undistorted, 'masked':mask_to_save,'eroded':eroded_to_save, 'dilated':dilated_to_save, 'aruco':arucoFrame, 'tracker':tracker}
 	for name in fileNames:
 		videoWriters[name].write(framesToSave[name])
 	
