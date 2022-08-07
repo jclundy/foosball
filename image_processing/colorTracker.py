@@ -91,9 +91,12 @@ arucoParams = cv2.aruco.DetectorParameters_create()
 
 ballDetectionCorners = [(0,0), (0, height), (height,width), (0,width)]
 
-newWidth = 0;
-newHeight = 0;
-M = None;
+newWidth = 0
+newHeight = 0
+
+M_transform = None
+
+M_transform_initialized = False
 
 while True:
 	(grabbed, frame) = camera.read()
@@ -115,13 +118,17 @@ while True:
 
 	diagnosticFrame = frame.copy()
 
+	all_zeros = not np.any(M_transform)
+
+
 	(arucoCorners, ids, rejected) = cv2.aruco.detectMarkers(frame, arucoDict, parameters=arucoParams)
+	#print(arucoCorners)
 	if(len(arucoCorners) > 0):
 		ids = ids.flatten()
 
 		for(markerCorner, markerID) in zip(arucoCorners, ids):
-			arucoCorners = markerCorner.reshape((4,2))
-			(topLeft, topRight, bottomRight, bottomLeft) = arucoCorners
+			corners = markerCorner.reshape((4,2))
+			(topLeft, topRight, bottomRight, bottomLeft) = corners
 
 
 			# convert each of the (x, y)-coordinate pairs to integers
@@ -148,7 +155,8 @@ while True:
 					newCorner = topLeft
 				ballDetectionCorners[markerID] = newCorner
 
-			if(M == None):
+			if(not M_transform_initialized):
+				print(corners[0])
 				bl = np.int32(arucoCorners[0].reshape((4,2))[1])
 				bl = tuple(bl)
 							     
@@ -177,14 +185,15 @@ while True:
 
 				pointsBefore = np.float32(pointsBefore)
 				newCoordinates = np.float32(newCoordinates)
-				M = cv2.getPerspectiveTransform(pointsBefore,newCoordinates)
-				
+				M_transform = cv2.getPerspectiveTransform(pointsBefore,newCoordinates)
+				M_transform_initialized = True
+				print(M_transform)
 								
 				output_h = newHeight  #240
 				output_w = newWidth #320
 
-	if(M != None) :
-		frame = cv2.warpPerspective(newFrame, M, (int(newWidth), int(newHeight)))
+	if(M_transform_initialized) :
+		frame = cv2.warpPerspective(frame, M_transform, (int(newWidth), int(newHeight)))
 
 	warped = frame.copy()
 
