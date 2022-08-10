@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 import yaml
-
+"""
 calibrationFile = open('calibrations/calibration2.yaml', 'r')
 calibrationData = yaml.safe_load(calibrationFile)
 
@@ -21,9 +21,16 @@ numColumns = distortion_coefficients['cols']
 numRows =  distortion_coefficients['rows']
 distortionCoefficients = np.array(distortion_coefficients['data'])
 distortionCoefficients = np.reshape(distortionCoefficients, (numRows, numColumns))
+"""
 
-filePath = "/home/joe/Videos/foos_rectified2.avi"
-#filePath = "/home/joe/Videos/Webcam/2022-04-20-210347.webm"
+mtx = [[798.86256178, 0, 401.52277111], [ 0, 812.90563717,319.32828483], [  0, 0,1.]]
+cameraMatrix = np.reshape(mtx, (3, 3))
+dist = [-3.51591693e-01, 1.92604733e-01, 3.20674878e-04, 1.56190371e-04, -1.16111572e-01]
+
+distortionCoefficients = np.array(dist)
+
+#filePath = "/home/joe/Videos/foos_rectified2.avi"
+filePath = "/home/joe/Videos/Webcam/2022-04-20-210347.webm"
 camera = cv2.VideoCapture(filePath)
 
 #camera = cv2.VideoCapture(2)
@@ -84,6 +91,12 @@ arucoParams = cv2.aruco.DetectorParameters_create()
 
 ballDetectionCorners = [(0,0), (0, height), (height,width), (0,width)]
 
+newWidth = 0
+newHeight = 0
+
+M_transform = None
+
+M_transform_initialized = False
 
 while True:
 	(grabbed, frame) = camera.read()
@@ -95,21 +108,25 @@ while True:
 	original = frame.copy()
 
 	height, width = frame.shape[:2]
+
 	w = width
 	h = height
-	"""
 	newcameramtx, roi=cv2.getOptimalNewCameraMatrix(cameraMatrix,distortionCoefficients,(w,h),1,(w,h))
 	frame = cv2.undistort(frame, cameraMatrix, distortionCoefficients, None, newcameramtx) 
-	undistorted = frame.copy()
-	"""
-	undistorted = frame.copy()
-	diagnosticFrame = frame.copy()
 
-	(corners, ids, rejected) = cv2.aruco.detectMarkers(frame, arucoDict, parameters=arucoParams)
-	if(len(corners) > 0):
+	undistorted = frame.copy()
+
+	arucoFrame = frame.copy()
+
+	all_zeros = not np.any(M_transform)
+
+
+	(arucoCorners, ids, rejected) = cv2.aruco.detectMarkers(frame, arucoDict, parameters=arucoParams)
+	#print(arucoCorners)
+	if(len(arucoCorners) > 0):
 		ids = ids.flatten()
 
-		for(markerCorner, markerID) in zip(corners, ids):
+		for(markerCorner, markerID) in zip(arucoCorners, ids):
 			corners = markerCorner.reshape((4,2))
 			(topLeft, topRight, bottomRight, bottomLeft) = corners
 
@@ -121,10 +138,10 @@ while True:
 			topLeft = (int(topLeft[0]), int(topLeft[1]))
 
 
-			cv2.line(diagnosticFrame, topLeft, topRight, (0, 255, 0), 2)
-			cv2.line(diagnosticFrame, topRight, bottomRight, (0, 255, 0), 2)
-			cv2.line(diagnosticFrame, bottomRight, bottomLeft, (0, 255, 0), 2)
-			cv2.line(diagnosticFrame, bottomLeft, topLeft, (0, 255, 0), 2)
+			cv2.line(arucoFrame, topLeft, topRight, (0, 255, 0), 2)
+			cv2.line(arucoFrame, topRight, bottomRight, (0, 255, 0), 2)
+			cv2.line(arucoFrame, bottomRight, bottomLeft, (0, 255, 0), 2)
+			cv2.line(arucoFrame, bottomLeft, topLeft, (0, 255, 0), 2)
 
 			if(markerID >= 0 and markerID <= 3):
 				newCorner = (0,0)
@@ -138,6 +155,29 @@ while True:
 					newCorner = topLeft
 				ballDetectionCorners[markerID] = newCorner
 
+		if(not M_transform_initialized):
+			newWidth = 800
+			newHeight = 600
+			#RB, RT, LT, LB
+			newCoordinates = [(newWidth, newHeight), (newWidth, 0), (0,0), (0, newHeight)]
+
+			pointsBefore = np.float32(ballDetectionCorners)
+			newCoordinates = np.float32(newCoordinates)
+
+			print("points before", pointsBefore)
+			print("newCoordinates", newCoordinates)
+			M_transform = cv2.getPerspectiveTransform(pointsBefore,newCoordinates)
+			M_transform_initialized = True
+			print(M_transform)
+
+			print("new dimensions: ",(newHeight, newWidth))
+			print("ball detection corners", ballDetectionCorners)
+
+	if(M_transform_initialized) :
+		frame = cv2.warpPerspective(frame, M_transform, (int(newWidth), int(newHeight)))
+
+	warped = frame.copy()
+	tracker = frame.copy()
 	"""
 	if(len(rejected) > 0):
 		for(markerCorner) in rejected:
@@ -158,7 +198,7 @@ while True:
 	#draw bounding box
 	boundingBoxPoints = np.array(ballDetectionCorners)
 	boundingBoxPoints.reshape((-1,1,2))
-	cv2.polylines(diagnosticFrame, [boundingBoxPoints], True, (255, 0, 0), 2)
+	cv2.polylines(arucoFrame, [boundingBoxPoints], True, (255, 0, 0), 2)
 	
 
 	frame = cv2.resize(frame,(output_w, output_h), interpolation = cv2.INTER_CUBIC)
@@ -166,13 +206,16 @@ while True:
 	frame = cv2.GaussianBlur(frame, (11, 11), 0)
 	blurred = frame.copy()
 	
+	"""	
+	This is no longer necessary after applying the perspective transform, which also cropped out the region we weren't interested in
 	regionMask = np.zeros(frame.shape, dtype=np.uint8)
 	channel_count = frame.shape[2]
 	ignoreMaskColor = (255,)*channel_count
 	cv2.fillPoly(regionMask, [boundingBoxPoints], ignoreMaskColor)
 	
 	frame = cv2.bitwise_and(frame, regionMask)
-	
+	"""
+
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 	cv2.imshow("hsv", hsv)
 	if firstFrame is None:
@@ -216,18 +259,20 @@ while True:
 		#if( radius > 5):
 		# draw the circle and centroid on the frame,
 		# then update the list of tracked points
-		cv2.circle(diagnosticFrame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
-		cv2.circle(diagnosticFrame, center, 5, (0, 0, 255), -1)
+		cv2.circle(tracker, (int(x), int(y)), int(radius), (0, 255, 255), 2)
+		cv2.circle(tracker, center, 5, (0, 0, 255), -1)
 		#print("radius: %f\n",radius)
 
 
 	# show the frame to our screen
 	cv2.imshow("original", original)
-	cv2.imshow("Tracking", diagnosticFrame)
 	cv2.imshow("undistorted", undistorted) 
+	cv2.imshow("warped", warped)
 	cv2.imshow("Blurred", blurred)
+	cv2.imshow("Tracking", tracker)
+	cv2.imshow("aruco", arucoFrame)
 	
-	framesToSave = {'original':original, 'undistorted':undistorted, 'masked':mask_to_save,'eroded':eroded_to_save, 'dilated':dilated_to_save, 'tracker':diagnosticFrame}
+	framesToSave = {'original':original, 'undistorted':undistorted, 'masked':mask_to_save,'eroded':eroded_to_save, 'dilated':dilated_to_save, 'aruco':arucoFrame, 'tracker':tracker}
 	for name in fileNames:
 		videoWriters[name].write(framesToSave[name])
 	

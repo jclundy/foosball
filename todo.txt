@@ -1,3 +1,29 @@
+August 3
+Todo:
+
+Detection
+- implement warpPerspective in python script
+- perform detection on 'warped-frame'
+- map 'warped-frame' to real-world coordinates
+-- pixel mapping for distance at ball height
+-- pixel mapping for distance at aruco marker height
+
+Publish ball position
+- create ros node for ball tracking
+-- subscribe to image
+-- publish ball pose [position, velocity]
+
+Rod control
+- implement new controller
+-- track ball y-position
+
+Later improvements
+- light / color balancing algorithm for low light
+-- can use reference image of green in bright light
+
+- implement tracker algorithm in C
+- 
+
 March 18
 Progress
 - added calibration feature to 'zero' wrist motor steps
