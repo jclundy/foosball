@@ -3,10 +3,15 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
 
+/*
+Acknowledgements:
+Used implementation presented here as a template
 // Author: Addison Sears-Collins
 // Website: https://automaticaddison.com
 // Description: A basic image subscriber for ROS in C++
 // Date: June 27, 2020
+*/
+
 void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
  
@@ -39,7 +44,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 int main(int argc, char **argv)
 {
   // The name of the node
-  ros::init(argc, argv, "frame_listener");
+  ros::init(argc, argv, "color_tracker");
    
   // Default handler for nodes in ROS
   ros::NodeHandle nh;
@@ -48,7 +53,7 @@ int main(int argc, char **argv)
   image_transport::ImageTransport it(nh);
    
   // Subscribe to the /camera topic
-  image_transport::Subscriber sub = it.subscribe("camera", 1, imageCallback);
+  image_transport::Subscriber sub = it.subscribe("cv_camera/image_raw", 1, imageCallback);
    
   // Make sure we keep reading new video frames by calling the imageCallback function
   ros::spin();
