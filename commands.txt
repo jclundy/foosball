@@ -55,6 +55,11 @@ python colorTracker.py
 rosparam set cv_camera/device_id 2
 rosrun cv_camera cv_camera_node
 
+## using file for camera driver
+rosparam set cv_camera/file /home/joe/Videos/Webcam/2022-04-20-210347.webm
+rosparam set cv_camera/rate 15
+rosparam set cv_camera/rescale_camera_info true
+
 #view image
 rosrun image_view image_view image:=cv_camera/image_raw
 
