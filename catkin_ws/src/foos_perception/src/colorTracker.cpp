@@ -27,7 +27,7 @@ class ColorTracker
 
     }
 
-    void handleNewFrame(cv::Mat frame) {
+    void handleNewFrame(cv::Mat &frame) {
       cv::Mat newCameraMatrix = cv::getOptimalNewCameraMatrix(cameraMatrix, distortionCoefficients, frame.size(), 1, frame.size(), 0);
       //	frame = cv2.undistort(frame, cameraMatrix, distortionCoefficients, None, newcameramtx) 
       cv::Mat undistorted;
