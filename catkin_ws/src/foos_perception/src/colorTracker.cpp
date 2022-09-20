@@ -16,22 +16,23 @@ Used implementation presented here as a template
 Then used this as a guide
 http://wiki.ros.org/cv_bridge/Tutorials/UsingCvBridgeToConvertBetweenROSImagesAndOpenCVImages
 */
+using namespace cv;
 
 class ColorTracker
 {
   public: 
-    cv::Mat cameraMatrix;
-    cv::Mat distortionCoefficients;
+    Mat cameraMatrix;
+    Mat distortionCoefficients;
     
     ColorTracker() {
 
     }
 
-    void handleNewFrame(cv::Mat &frame) {
-      cv::Mat newCameraMatrix = cv::getOptimalNewCameraMatrix(cameraMatrix, distortionCoefficients, frame.size(), 1, frame.size(), 0);
+    void handleNewFrame(Mat &frame) {
+      Mat newCameraMatrix = getOptimalNewCameraMatrix(cameraMatrix, distortionCoefficients, frame.size(), 1, frame.size(), 0);
       //	frame = cv2.undistort(frame, cameraMatrix, distortionCoefficients, None, newcameramtx) 
-      cv::Mat undistorted;
-      cv::undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
+      Mat undistorted;
+      undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
     }
 };
 
@@ -52,15 +53,15 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
      
     // Store the values of the OpenCV-compatible image
     // into the current_frame variable
-    cv::Mat current_frame = cv_ptr->image;
+    Mat current_frame = cv_ptr->image;
 
     // Display the current frame
-    cv::imshow("raw", current_frame); 
+    imshow("raw", current_frame); 
 
     ballTracker.handleNewFrame(current_frame);
 
     // Display frame for 30 milliseconds
-    cv::waitKey(30);
+    waitKey(30);
   }
   catch (cv_bridge::Exception& e)
   {
@@ -74,8 +75,8 @@ int main(int argc, char **argv)
                                 0, 812.90563717, 319.32828483,
                                 0, 0, 1.0};
   double defaultDistortionCoefficients[5] = {-3.51591693e-01, 1.92604733e-01, 3.20674878e-04, 1.56190371e-04, -1.16111572e-01};
-  ballTracker.cameraMatrix = cv::Mat(3, 3, CV_64F, cameraMatrixValues);
-  ballTracker.distortionCoefficients = cv::Mat(1, 5, CV_64F, defaultDistortionCoefficients);
+  ballTracker.cameraMatrix = Mat(3, 3, CV_64F, cameraMatrixValues);
+  ballTracker.distortionCoefficients = Mat(1, 5, CV_64F, defaultDistortionCoefficients);
 
   // The name of the node
   ros::init(argc, argv, "color_tracker");
@@ -93,5 +94,5 @@ int main(int argc, char **argv)
   ros::spin();
    
   // Close down OpenCV
-  cv::destroyWindow("view");
+  destroyWindow("view");
 }
