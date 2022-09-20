@@ -3,6 +3,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/calib3d.hpp>
+#include <opencv2/aruco.hpp>
 // OpenCV includes
 
 /*
@@ -23,9 +24,12 @@ class ColorTracker
   public: 
     Mat cameraMatrix;
     Mat distortionCoefficients;
-    
-    ColorTracker() {
+    Ptr<aruco::Dictionary> arucoDictionary;
+    Ptr<aruco::DetectorParameters> arucoDetectorParameters;
 
+    ColorTracker() {
+      arucoDictionary = aruco::getPredefinedDictionary(aruco::DICT_4X4_50);
+      arucoDetectorParameters = aruco::DetectorParameters::create();
     }
 
     void handleNewFrame(Mat &frame) {
@@ -33,6 +37,10 @@ class ColorTracker
       //	frame = cv2.undistort(frame, cameraMatrix, distortionCoefficients, None, newcameramtx) 
       Mat undistorted;
       undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
+
+      std::vector<std::vector<cv::Point2f>> markerCorners;
+      std::vector<int> markerIds;
+      aruco::detectMarkers(undistorted, arucoDictionary, markerCorners, markerIds, arucoDetectorParameters);
     }
 };
 
