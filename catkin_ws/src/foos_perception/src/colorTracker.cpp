@@ -1,11 +1,14 @@
+// ROS includes
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
-#include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
+// OpenCV includes
+#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/aruco.hpp>
-// OpenCV includes
 
+// std includes
+#include <vector>
 /*
 Acknowledgements:
 Used implementation presented here as a template
@@ -27,20 +30,84 @@ class ColorTracker
     Ptr<aruco::Dictionary> arucoDictionary;
     Ptr<aruco::DetectorParameters> arucoDetectorParameters;
 
+    bool regionOfInterestInitialized;
+    std::vector<cv::Point2f>(4) regionOfInterestCorners;
+    std::vector<cv::Point2f>(4) croppedFrameCorners;
+    Mat warpTransform;
+    Size outputImageSize;
+    float outputWidth;
+    float outputHeight;
+
     ColorTracker() {
       arucoDictionary = aruco::getPredefinedDictionary(aruco::DICT_4X4_50);
       arucoDetectorParameters = aruco::DetectorParameters::create();
+      regionOfInterestInitialized = false;
+
+      outputWidth = 800;
+      outputHeight = 600;
+      outputImageSize = Size(outputWidth, outputHeight);
+
+      cv::Point2f newBottomRight = cv::Point2f(outputWidth, outputHeight);
+      cv::Point2f newTopRight = cv::Point2f(outputWidth, 0);
+      cv::Point2f newTopLeft = cv::Point2f(0, 0);
+      cv::Point2f newBottomLeft = cv::Point2f(0, outputHeight);
+
+      std::vector<cv::Point2f>::iterator it;
+      it = croppedFrameCorners.begin();
+
+      croppedFrameCorners.insert(it + 0, topRight);
+      croppedFrameCorners.insert(it + 1, bottomRight);
+      croppedFrameCorners.insert(it + 2, bottomLeft);
+      croppedFrameCorners.insert(it + 3, topLeft);
+
     }
 
     void handleNewFrame(Mat &frame) {
+     /*
+      * Step 1 - perform distortion correction
+      */
       Mat newCameraMatrix = getOptimalNewCameraMatrix(cameraMatrix, distortionCoefficients, frame.size(), 1, frame.size(), 0);
       //	frame = cv2.undistort(frame, cameraMatrix, distortionCoefficients, None, newcameramtx) 
       Mat undistorted;
       undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
 
+     /*
+      * Step 2 - detect aruco markers
+      */
       std::vector<std::vector<cv::Point2f>> markerCorners;
       std::vector<int> markerIds;
       aruco::detectMarkers(undistorted, arucoDictionary, markerCorners, markerIds, arucoDetectorParameters);
+
+      if(markerCorners.size() >= 4 && regionOfInterestInitialized == false) {
+
+        // marker ID 0 : use top right corner [1]
+        // marker ID 1 : use bottom right corner [2]
+        // marker ID 2 : use bottom left corner [3]
+        // marker ID 3 : use top left corner [0]
+        cv::Point2f topRight     = markerCorners[0][1];
+        cv::Point2f bottomRight  = markerCorners[1][2];
+        cv::Point2f bottomLeft   = markerCorners[2][3];
+        cv::Point2f topLeft      = markerCorners[3][0];
+
+        std::vector<cv::Point2f>::iterator it;
+        it = regionOfInterestCorners.begin();
+
+        regionOfInterestCorners.insert(it + 0, topRight);
+        regionOfInterestCorners.insert(it + 1, bottomRight);
+        regionOfInterestCorners.insert(it + 2, bottomLeft);
+        regionOfInterestCorners.insert(it + 3, topLeft);
+
+        warpTransform = getPerspectiveTransform(regionOfInterestCorners, croppedFrameCorners);
+        regionOfInterestInitialized = true;
+
+      }
+
+      /*
+      * Step 3 - perform perspective transform
+      */
+      Mat warped;
+      void warpPerspective(undistorted, warped, warpTransform, outputImageSize);
+
     }
 };
 
