@@ -37,6 +37,8 @@ class ColorTracker
     Size outputImageSize;
     float outputWidth;
     float outputHeight;
+    std::vector<float> colorMaskUpperBound;
+    std::vector<float> colorMaskLowerBound;
 
     ColorTracker() {
       arucoDictionary = aruco::getPredefinedDictionary(aruco::DICT_4X4_50);
@@ -46,6 +48,9 @@ class ColorTracker
       outputWidth = 800;
       outputHeight = 600;
       outputImageSize = Size(outputWidth, outputHeight);
+
+      colorMaskUpperBound = {180, 118, 255};
+      colorMaskLowerBound = {50, 56, 200};
 
       cv::Point2f newBottomRight = cv::Point2f(outputWidth, outputHeight);
       cv::Point2f newTopRight = cv::Point2f(outputWidth, 0);
@@ -103,8 +108,18 @@ class ColorTracker
       Mat warped;
       warpPerspective(undistorted, warped, warpTransform, outputImageSize);
 
-      // Step 4) Convert to HSV
+      // Step 4) Gaussian blur
+      Mat blurred;
+      cv::Size2d kernelSize(11,11);
+      GaussianBlur(warped, blurred, kernelSize, 0);
 
+      // Step 5) Convert to HSV
+      Mat hsv;
+      cvtColor(blurred, hsv, cv::COLOR_BGR2HSV);
+
+      // Step 6) Apply color mask
+      Mat masked;
+      inRange(hsv, colorMaskLowerBound, colorMaskUpperBound, masked);
     }
 };
 
