@@ -120,6 +120,20 @@ class ColorTracker
       // Step 6) Apply color mask
       Mat masked;
       inRange(hsv, colorMaskLowerBound, colorMaskUpperBound, masked);
+
+      // Step 7) Perform erosion
+      Mat eroded;
+      erode(masked, eroded, Mat(),Point(-1,-1), 2);
+
+      // Step 8) Perform dilation
+      Mat dilated;
+      dilate(eroded, dilated, Mat(),Point(-1,-1), 4);
+
+      // Step 9) Find contours
+      std::vector<std::vector<cv::Point2f>> contours;
+      findContours(eroded, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+
     }
 };
 
