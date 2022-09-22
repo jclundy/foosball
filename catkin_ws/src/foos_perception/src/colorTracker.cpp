@@ -60,20 +60,17 @@ class ColorTracker
       croppedFrameCorners.insert(it + 2, newBottomLeft);
       croppedFrameCorners.insert(it + 3, newTopLeft);
 
+      regionOfInterestCorners.insert(regionOfInterestCorners.begin(), croppedFrameCorners.begin(), croppedFrameCorners.end());
     }
 
     void handleNewFrame(Mat &frame) {
-     /*
-      * Step 1 - perform distortion correction
-      */
+
+      // Step 1 - perform distortion correction
       Mat newCameraMatrix = getOptimalNewCameraMatrix(cameraMatrix, distortionCoefficients, frame.size(), 1, frame.size(), 0);
-      //	frame = cv2.undistort(frame, cameraMatrix, distortionCoefficients, None, newcameramtx) 
       Mat undistorted;
       undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
 
-     /*
-      * Step 2 - detect aruco markers
-      */
+      // Step 2) - detect aruco markers
       std::vector<std::vector<cv::Point2f>> markerCorners;
       std::vector<int> markerIds;
       aruco::detectMarkers(undistorted, arucoDictionary, markerCorners, markerIds, arucoDetectorParameters);
@@ -102,11 +99,11 @@ class ColorTracker
 
       }
 
-      /*
-      * Step 3 - perform perspective transform
-      */
+      // Step 3) - perform perspective transform
       Mat warped;
       warpPerspective(undistorted, warped, warpTransform, outputImageSize);
+
+      // Step 4) Convert to HSV
 
     }
 };
