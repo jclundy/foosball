@@ -31,8 +31,8 @@ class ColorTracker
     Ptr<aruco::DetectorParameters> arucoDetectorParameters;
 
     bool regionOfInterestInitialized;
-    std::vector<cv::Point2f>(4) regionOfInterestCorners;
-    std::vector<cv::Point2f>(4) croppedFrameCorners;
+    std::vector<cv::Point2f> regionOfInterestCorners;
+    std::vector<cv::Point2f> croppedFrameCorners;
     Mat warpTransform;
     Size outputImageSize;
     float outputWidth;
@@ -55,10 +55,10 @@ class ColorTracker
       std::vector<cv::Point2f>::iterator it;
       it = croppedFrameCorners.begin();
 
-      croppedFrameCorners.insert(it + 0, topRight);
-      croppedFrameCorners.insert(it + 1, bottomRight);
-      croppedFrameCorners.insert(it + 2, bottomLeft);
-      croppedFrameCorners.insert(it + 3, topLeft);
+      croppedFrameCorners.insert(it + 0, newTopRight);
+      croppedFrameCorners.insert(it + 1, newBottomRight);
+      croppedFrameCorners.insert(it + 2, newBottomLeft);
+      croppedFrameCorners.insert(it + 3, newTopLeft);
 
     }
 
@@ -106,7 +106,7 @@ class ColorTracker
       * Step 3 - perform perspective transform
       */
       Mat warped;
-      void warpPerspective(undistorted, warped, warpTransform, outputImageSize);
+      warpPerspective(undistorted, warped, warpTransform, outputImageSize);
 
     }
 };
