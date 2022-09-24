@@ -38,11 +38,11 @@ class ColorTracker
     Ptr<aruco::Dictionary> arucoDictionary;
     Ptr<aruco::DetectorParameters> arucoDetectorParameters;
 
-    std::vector<cv::Point2f> regionOfInterestCorners;
+    cv::Point2f regionOfInterestCorners[4];
     bool regionOfInterestCornersInitialized[4] = {false, false, false, false};
     bool warpTransformInitialized = false;
 
-    std::vector<cv::Point2f> croppedFrameCorners;
+    cv::Point2f croppedFrameCorners[4];
     Mat warpTransform;
     Size outputImageSize;
     float outputWidth;
@@ -81,19 +81,10 @@ class ColorTracker
       cv::Point2f newTopRight = cv::Point2f(outputWidth, 0);
       cv::Point2f newTopLeft = cv::Point2f(0, 0);
       cv::Point2f newBottomLeft = cv::Point2f(0, outputHeight);
-
-      ROS_INFO("Initialized new frame points");
-
-      croppedFrameCorners.push_back(newTopRight);
-      croppedFrameCorners.push_back(newBottomRight);
-      croppedFrameCorners.push_back(newBottomLeft);
-      croppedFrameCorners.push_back(newTopLeft);
-
-      ROS_INFO("Initialized cropped frame corners");
-
-      regionOfInterestCorners.insert(regionOfInterestCorners.begin(), croppedFrameCorners.begin(), croppedFrameCorners.end());
-
-      ROS_INFO("Initialized ROI frame corners");
+      croppedFrameCorners[0] = newBottomRight;
+      croppedFrameCorners[1] = newTopRight;
+      croppedFrameCorners[2] = newTopLeft;
+      croppedFrameCorners[3] = newBottomLeft;
     }
 
     void handleNewFrame(Mat &frame) {
@@ -215,7 +206,14 @@ class ColorTracker
 
     void drawRegionOfInterest(Mat frame) {
       if(regionOfInterestInitialized()) {
-        polylines(frame, regionOfInterestCorners, true, Scalar(255, 0, 0), 2);
+        // marker ID 0 : use top right corner [1]
+        // marker ID 1 : use bottom right corner [2]
+        // marker ID 2 : use bottom left corner [3]
+        // marker ID 3 : use top left corner [0]
+        line(frame, regionOfInterestCorners[3], regionOfInterestCorners[0], Scalar(255, 0, 0), 2);
+        line(frame, regionOfInterestCorners[0], regionOfInterestCorners[2], Scalar(255, 0, 0), 2);
+        line(frame, regionOfInterestCorners[2], regionOfInterestCorners[1], Scalar(255, 0, 0), 2);
+        line(frame, regionOfInterestCorners[1], regionOfInterestCorners[3], Scalar(255, 0, 0), 2);
       }
     }
 };
