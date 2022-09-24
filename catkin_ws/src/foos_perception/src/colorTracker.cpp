@@ -93,7 +93,6 @@ class ColorTracker
       Mat newCameraMatrix = getOptimalNewCameraMatrix(cameraMatrix, distortionCoefficients, frame.size(), 1, frame.size(), 0);
       Mat undistorted;
       undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
-      ROS_INFO("Undistorted");
 
       // Step 2) - detect aruco markers
       std::vector<std::vector<cv::Point2f>> markerCorners;
@@ -148,38 +147,31 @@ class ColorTracker
       Mat warped;
       // warpPerspective(undistorted, warped, warpTransform, outputImageSize);
       undistorted.copyTo(warped);
-      ROS_INFO("Warped");
 
       // Step 4) Gaussian blur
       Mat blurred;
       cv::Size2d kernelSize(11,11);
       GaussianBlur(warped, blurred, kernelSize, 0);
-      ROS_INFO("Blurred");
 
       // Step 5) Convert to HSV
       Mat hsv;
       cvtColor(blurred, hsv, cv::COLOR_BGR2HSV);
-      ROS_INFO("HSV");
 
       // Step 6) Apply color mask
       Mat masked;
       inRange(hsv, colorMaskLowerBound, colorMaskUpperBound, masked);
-      ROS_INFO("Masked");
 
       // Step 7) Perform erosion
       Mat eroded;
       erode(masked, eroded, Mat(),Point(-1,-1), 2);
-      ROS_INFO("Eroded");
 
       // Step 8) Perform dilation
       Mat dilated;
       dilate(eroded, dilated, Mat(),Point(-1,-1), 4);
-      ROS_INFO("Dilated");
 
       // Step 9) Find contours
       // std::vector<std::vector<cv::Point2f>> contours;
       // findContours(eroded, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-      // ROS_INFO("Contours");
 
 
       // Mark up
@@ -222,8 +214,6 @@ ColorTracker* ballTracker;
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
-  ROS_INFO("Frame received");
-
   // Pointer used for the conversion from a ROS message to 
   // an OpenCV-compatible image
   cv_bridge::CvImagePtr cv_ptr;
