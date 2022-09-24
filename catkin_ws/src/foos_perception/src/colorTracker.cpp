@@ -132,6 +132,7 @@ class ColorTracker
 
         if(markerId >= 0 && markerId < 4) {
           if(!regionOfInterestCornersInitialized[markerId]) {
+            ROS_INFO("initializing ROI corner %i, (%f, %f)", markerId, cornerOfInterest.x, cornerOfInterest.y);
             regionOfInterestCorners[markerId] = cornerOfInterest;
             regionOfInterestCornersInitialized[markerId] = true;
           }
@@ -139,14 +140,14 @@ class ColorTracker
       }
 
       if(regionOfInterestInitialized() && !warpTransformInitialized) {
+        ROS_INFO("initializing warp transform");
         warpTransform = getPerspectiveTransform(regionOfInterestCorners, croppedFrameCorners);
         warpTransformInitialized = true;
       }
 
       // Step 3) - perform perspective transform
       Mat warped;
-      // warpPerspective(undistorted, warped, warpTransform, outputImageSize);
-      undistorted.copyTo(warped);
+      warpPerspective(undistorted, warped, warpTransform, outputImageSize);
 
       // Step 4) Gaussian blur
       Mat blurred;
@@ -178,7 +179,7 @@ class ColorTracker
       Mat markupFrame;
       undistorted.copyTo(markupFrame);
       drawArucoCorners(markupFrame,markerCorners, markerIds);
-      // drawRegionOfInterest(markupFrame);
+      drawRegionOfInterest(markupFrame);
 
       imshow("markup", markupFrame);
 
@@ -203,9 +204,9 @@ class ColorTracker
         // marker ID 2 : use bottom left corner [3]
         // marker ID 3 : use top left corner [0]
         line(frame, regionOfInterestCorners[3], regionOfInterestCorners[0], Scalar(255, 0, 0), 2);
-        line(frame, regionOfInterestCorners[0], regionOfInterestCorners[2], Scalar(255, 0, 0), 2);
-        line(frame, regionOfInterestCorners[2], regionOfInterestCorners[1], Scalar(255, 0, 0), 2);
-        line(frame, regionOfInterestCorners[1], regionOfInterestCorners[3], Scalar(255, 0, 0), 2);
+        line(frame, regionOfInterestCorners[0], regionOfInterestCorners[1], Scalar(255, 0, 0), 2);
+        line(frame, regionOfInterestCorners[1], regionOfInterestCorners[2], Scalar(255, 0, 0), 2);
+        line(frame, regionOfInterestCorners[2], regionOfInterestCorners[3], Scalar(255, 0, 0), 2);
       }
     }
 };
