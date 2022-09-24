@@ -6,6 +6,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/aruco.hpp>
+#include <opencv2/imgproc.hpp>
 
 // std includes
 #include <vector>
@@ -21,6 +22,8 @@ Then used this as a guide
 http://wiki.ros.org/cv_bridge/Tutorials/UsingCvBridgeToConvertBetweenROSImagesAndOpenCVImages
 */
 using namespace cv;
+
+void drawArucoCorners(Mat &, std::vector<std::vector<cv::Point2f>>, std::vector<int>);
 
 class ColorTracker
 {
@@ -101,10 +104,14 @@ class ColorTracker
       ROS_INFO("Undistorted");
 
       // Step 2) - detect aruco markers
-      // std::vector<std::vector<cv::Point2f>> markerCorners;
-      // std::vector<int> markerIds;
-      // aruco::detectMarkers(undistorted, arucoDictionary, markerCorners, markerIds, arucoDetectorParameters);
+      std::vector<std::vector<cv::Point2f>> markerCorners;
+      std::vector<int> markerIds;
+      aruco::detectMarkers(undistorted, arucoDictionary, markerCorners, markerIds, arucoDetectorParameters);
 
+      Mat markupFrame;
+      undistorted.copyTo(markupFrame);
+
+      drawArucoCorners(markupFrame,markerCorners, markerIds);
       // if(markerCorners.size() >= 4 && regionOfInterestInitialized == false) {
 
       //   // marker ID 0 : use top right corner [1]
@@ -170,6 +177,7 @@ class ColorTracker
       imshow("blurred", warped);
       imshow("masked", masked);
       imshow("dilated", dilated);
+      imshow("markup", markupFrame);
     }
 };
 
@@ -234,4 +242,17 @@ int main(int argc, char **argv)
    
   // Close down OpenCV
   destroyWindow("view");
+}
+
+void drawArucoCorners(Mat &frame,
+  std::vector<std::vector<cv::Point2f>> markerCorners,
+  std::vector<int> markerIds) {
+    for (int i = 0; i < markerCorners.size(); i++) {
+      cv::Point2f topLeft = markerCorners[i][0];
+      cv::Point2f topRight = markerCorners[i][1];
+      cv::Point2f bottomRight = markerCorners[i][2];
+      cv::Point2f bottomLeft = markerCorners[i][3];
+
+      cv::rectangle(frame, topLeft, bottomRight, Scalar(0, 255, 0), 2);
+    }
 }
