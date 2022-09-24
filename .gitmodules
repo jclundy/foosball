@@ -1,0 +1,3 @@
+[submodule "catkin_ws/src/video_stream_opencv"]
+	path = catkin_ws/src/video_stream_opencv
+	url = https://github.com/ros-drivers/video_stream_opencv
