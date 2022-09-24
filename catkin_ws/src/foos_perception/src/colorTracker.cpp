@@ -38,8 +38,10 @@ class ColorTracker
     Ptr<aruco::Dictionary> arucoDictionary;
     Ptr<aruco::DetectorParameters> arucoDetectorParameters;
 
-    bool regionOfInterestInitialized;
     std::vector<cv::Point2f> regionOfInterestCorners;
+    bool regionOfInterestCornersInitialized[4] = {false, false, false, false};
+    bool warpTransformInitialized = false;
+
     std::vector<cv::Point2f> croppedFrameCorners;
     Mat warpTransform;
     Size outputImageSize;
@@ -61,7 +63,6 @@ class ColorTracker
 
       arucoDictionary = aruco::getPredefinedDictionary(aruco::DICT_4X4_50);
       arucoDetectorParameters = aruco::DetectorParameters::create();
-      regionOfInterestInitialized = false;
 
       ROS_INFO("Initialized aruco");
 
@@ -108,33 +109,49 @@ class ColorTracker
       std::vector<int> markerIds;
       aruco::detectMarkers(undistorted, arucoDictionary, markerCorners, markerIds, arucoDetectorParameters);
 
-      Mat markupFrame;
-      undistorted.copyTo(markupFrame);
+      cv::Point2f cornerOfInterest;
 
-      drawArucoCorners(markupFrame,markerCorners, markerIds);
-      // if(markerCorners.size() >= 4 && regionOfInterestInitialized == false) {
+      for (int i = 0; i < markerCorners.size(); i++) {
 
-      //   // marker ID 0 : use top right corner [1]
-      //   // marker ID 1 : use bottom right corner [2]
-      //   // marker ID 2 : use bottom left corner [3]
-      //   // marker ID 3 : use top left corner [0]
-      //   cv::Point2f topRight     = markerCorners[0][1];
-      //   cv::Point2f bottomRight  = markerCorners[1][2];
-      //   cv::Point2f bottomLeft   = markerCorners[2][3];
-      //   cv::Point2f topLeft      = markerCorners[3][0];
+        // marker ID 0 : use top right corner [1]
+        // marker ID 1 : use bottom right corner [2]
+        // marker ID 2 : use bottom left corner [3]
+        // marker ID 3 : use top left corner [0]
+        int markerId = markerIds[i];
+        switch(markerId) {
+          case 0: {
+            cornerOfInterest = markerCorners[i][1];
+            break;
+          }
+          case 1: {
+            cornerOfInterest = markerCorners[i][2];
+            break;
+          }
+          case 2: {
+            cornerOfInterest = markerCorners[i][3];
+            break;
+          }
+          case 3: {
+            cornerOfInterest = markerCorners[i][0];
+            break;
+          }
+          default: {
+            break;
+          }
+        }
 
-      //   std::vector<cv::Point2f>::iterator it;
-      //   it = regionOfInterestCorners.begin();
+        if(markerId >= 0 && markerId < 4) {
+          if(!regionOfInterestCornersInitialized[markerId]) {
+            regionOfInterestCorners[markerId] = cornerOfInterest;
+            regionOfInterestCornersInitialized[markerId] = true;
+          }
+        }
+      }
 
-      //   regionOfInterestCorners.insert(it + 0, topRight);
-      //   regionOfInterestCorners.insert(it + 1, bottomRight);
-      //   regionOfInterestCorners.insert(it + 2, bottomLeft);
-      //   regionOfInterestCorners.insert(it + 3, topLeft);
-
-      //   warpTransform = getPerspectiveTransform(regionOfInterestCorners, croppedFrameCorners);
-      //   regionOfInterestInitialized = true;
-
-      // }
+      if(regionOfInterestInitialized() && !warpTransformInitialized) {
+        warpTransform = getPerspectiveTransform(regionOfInterestCorners, croppedFrameCorners);
+        warpTransformInitialized = true;
+      }
 
       // Step 3) - perform perspective transform
       Mat warped;
@@ -174,10 +191,32 @@ class ColorTracker
       // ROS_INFO("Contours");
 
 
+      // Mark up
+      Mat markupFrame;
+      undistorted.copyTo(markupFrame);
+      drawArucoCorners(markupFrame,markerCorners, markerIds);
+      // drawRegionOfInterest(markupFrame);
+
+      imshow("markup", markupFrame);
+
       imshow("blurred", warped);
       imshow("masked", masked);
       imshow("dilated", dilated);
-      imshow("markup", markupFrame);
+
+    }
+
+    bool regionOfInterestInitialized() {
+      bool result = true;
+      for (int i = 0; i < 4; i++) {
+        result &= regionOfInterestCornersInitialized[i];
+      }
+      return result;
+    }
+
+    void drawRegionOfInterest(Mat frame) {
+      if(regionOfInterestInitialized()) {
+        polylines(frame, regionOfInterestCorners, true, Scalar(255, 0, 0), 2);
+      }
     }
 };
 
