@@ -26,7 +26,12 @@ class ColorTracker
 {
   public: 
     Mat cameraMatrix;
+    double cameraMatrixValues[9] = { 798.86256178, 0, 401.52277111,
+                              0, 812.90563717, 319.32828483,
+                              0, 0, 1.0};
     Mat distortionCoefficients;
+    double defaultDistortionCoefficients[5] = {-3.51591693e-01, 1.92604733e-01, 3.20674878e-04, 1.56190371e-04, -1.16111572e-01};
+
     Ptr<aruco::Dictionary> arucoDictionary;
     Ptr<aruco::DetectorParameters> arucoDetectorParameters;
 
@@ -42,14 +47,11 @@ class ColorTracker
 
     ColorTracker() {
 
-      double cameraMatrixValues[9] = { 798.86256178, 0, 401.52277111,
-                                    0, 812.90563717, 319.32828483,
-                                    0, 0, 1.0};
+
       cameraMatrix = Mat(3, 3, CV_64F, cameraMatrixValues);
 
       ROS_INFO("Initialized camera matrix");
 
-      double defaultDistortionCoefficients[5] = {-3.51591693e-01, 1.92604733e-01, 3.20674878e-04, 1.56190371e-04, -1.16111572e-01};
       distortionCoefficients = Mat(1, 5, CV_64F, defaultDistortionCoefficients);
 
       ROS_INFO("Initialized distortion coefficients");
@@ -95,12 +97,8 @@ class ColorTracker
       // Step 1 - perform distortion correction
       Mat newCameraMatrix = getOptimalNewCameraMatrix(cameraMatrix, distortionCoefficients, frame.size(), 1, frame.size(), 0);
       Mat undistorted;
-      frame.copyTo(undistorted);
-
+      undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
       ROS_INFO("Undistorted");
-
-
-      // undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
 
       // Step 2) - detect aruco markers
       // std::vector<std::vector<cv::Point2f>> markerCorners;
