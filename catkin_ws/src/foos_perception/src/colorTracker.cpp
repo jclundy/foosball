@@ -171,9 +171,9 @@ class ColorTracker
       dilate(eroded, dilated, Mat(),Point(-1,-1), 4);
 
       // Step 9) Find contours
-      // std::vector<std::vector<cv::Point2f>> contours;
-      // findContours(eroded, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-
+      std::vector<std::vector<cv::Point>> contours;
+      std::vector<cv::Vec4i> hierarchy;
+      findContours(dilated, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
       // Mark up
       Mat markupFrame;
