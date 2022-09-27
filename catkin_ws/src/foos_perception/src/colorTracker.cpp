@@ -175,17 +175,38 @@ class ColorTracker
       std::vector<cv::Vec4i> hierarchy;
       findContours(dilated, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
+      // Step 10) Find largest countour
+      Point ballCenter;
+      float radius = 0;
+
+      for (size_t i = 0; i < contours.size(); i++) {
+        Point2f contourCenter;
+        float contourRadius;
+        minEnclosingCircle(contours[i], contourCenter, contourRadius);
+        if(contourRadius > radius) {
+          radius = contourRadius;
+          ballCenter = contourCenter;
+        }
+      }
+
       // Mark up
       Mat markupFrame;
       undistorted.copyTo(markupFrame);
       drawArucoCorners(markupFrame,markerCorners, markerIds);
       drawRegionOfInterest(markupFrame);
 
-      imshow("markup", markupFrame);
+      Mat detectionMarkupFrame;
+      warped.copyTo(detectionMarkupFrame);
+      for (size_t i = 0; i < contours.size(); i++) {
+        drawContours(detectionMarkupFrame, contours, (int)i, Scalar(255,0,0), 2, LINE_8, hierarchy);
+      }
+      circle(detectionMarkupFrame, ballCenter, radius, Scalar(0,255,0), 2);
 
       imshow("blurred", warped);
       imshow("masked", masked);
       imshow("dilated", dilated);
+      imshow("pre-processing markup", markupFrame);
+      imshow("detection markup", detectionMarkupFrame);
 
     }
 
