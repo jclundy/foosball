@@ -189,6 +189,48 @@ class ColorTracker
         }
       }
 
+      Mat gray;
+      cvtColor(warped, gray, COLOR_BGR2GRAY);
+      medianBlur(gray, gray, 5);
+
+      // Step 11) Canny edge detection
+      Mat cannyOutput;
+      Canny(gray, cannyOutput, 100, 200);
+
+      // Step 12) Hough circles
+      std::vector<Vec3f> circles;
+      HoughCircles(gray, circles, HOUGH_GRADIENT, 1, gray.rows/16, 100, 100, 10, 400);
+
+      // Step 13) Hough lines
+      std::vector<Vec2f> lines;
+      HoughLines(cannyOutput, lines, 1, CV_PI/180, 150, 0,0);
+
+      Mat experimentMarkup;
+      warped.copyTo(experimentMarkup);
+
+      for(size_t i = 0; i < circles.size(); i++) {
+        Vec3i c = circles[i];
+        Point center = Point(c[0], c[1]);
+        // circle center
+        circle( experimentMarkup, center, 1, Scalar(0,100,100), 3, LINE_AA);
+        // circle outline
+        int radius = c[2];
+        circle( experimentMarkup, center, radius, Scalar(255,0,255), 3, LINE_AA);
+      }
+
+      for( size_t i = 0; i < lines.size(); i++ ) {
+          float rho = lines[i][0], theta = lines[i][1];
+          Point pt1, pt2;
+          double a = cos(theta), b = sin(theta);
+          double x0 = a*rho, y0 = b*rho;
+          pt1.x = cvRound(x0 + 1000*(-b));
+          pt1.y = cvRound(y0 + 1000*(a));
+          pt2.x = cvRound(x0 - 1000*(-b));
+          pt2.y = cvRound(y0 - 1000*(a));
+          line( experimentMarkup, pt1, pt2, Scalar(0,0,255), 3, LINE_AA);
+      }
+
+
       // Mark up
       Mat markupFrame;
       undistorted.copyTo(markupFrame);
@@ -202,11 +244,31 @@ class ColorTracker
       }
       circle(detectionMarkupFrame, ballCenter, radius, Scalar(0,255,0), 2);
 
+
+      Point textPosition(ballCenter.x + radius, ballCenter.y + radius);
+
+      std::string ballPositionText = "Ball position : (";
+      ballPositionText += std::to_string(ballCenter.x);
+      ballPositionText += ", ";
+      ballPositionText += std::to_string(ballCenter.y);
+      ballPositionText += ")";
+
+      putText(detectionMarkupFrame, ballPositionText, textPosition,
+              cv::FONT_HERSHEY_SIMPLEX, 0.25,
+              Scalar(0, 0, 255), 1, LINE_8);
+
       imshow("blurred", warped);
       imshow("masked", masked);
       imshow("dilated", dilated);
       imshow("pre-processing markup", markupFrame);
       imshow("detection markup", detectionMarkupFrame);
+      imshow("canny", cannyOutput);
+
+      imshow("circle detection", experimentMarkup);
+
+      // publish data
+      ROS_INFO("radius %f", radius);
+      ROS_INFO("ball position px (%i, %i)", ballCenter.x, ballCenter.y);
 
     }
 
