@@ -92,7 +92,8 @@ class ColorTracker
       // Step 1 - perform distortion correction
       Mat newCameraMatrix = getOptimalNewCameraMatrix(cameraMatrix, distortionCoefficients, frame.size(), 1, frame.size(), 0);
       Mat undistorted;
-      undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
+      // undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
+      frame.copyTo(undistorted);
 
       // Step 2) - detect aruco markers
       std::vector<std::vector<cv::Point2f>> markerCorners;
