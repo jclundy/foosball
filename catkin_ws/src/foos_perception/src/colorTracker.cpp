@@ -170,7 +170,7 @@ class ColorTracker
           }
         }
 
-        if(markerId >= 0 && markerId < 4) {
+        if(markerId >= 0 && markerId <= 3) {
           if(!regionOfInterestCornersInitialized[markerId]) {
             ROS_INFO("initializing ROI corner %i, (%f, %f)", markerId, cornerOfInterest.x, cornerOfInterest.y);
             regionOfInterestCorners[markerId] = cornerOfInterest;
@@ -178,7 +178,7 @@ class ColorTracker
           }
         }
 
-        if(markerId >= 4 && markerId < 7) {
+        if(markerId >= 4 && markerId <= 7) {
           int idx = markerId - 4;
           if(!fieldMarkerInitialized[idx]) {
             ROS_INFO("field corner %i, (%f, %f)", markerId, cornerOfInterest.x, cornerOfInterest.y);
