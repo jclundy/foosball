@@ -60,6 +60,9 @@ class ColorTracker
     bool pixelToWorldTransformInitialized = false;
     Size realWorldSize;
 
+    int arucoIdToIndexMap[8] = {0,1,2,3, 2, 3, 0, 1 };
+
+
     ColorTracker() {
 
 
@@ -97,13 +100,19 @@ class ColorTracker
       croppedFrameCorners[2] = newTopLeft;
       croppedFrameCorners[3] = newBottomLeft;
 
-      cv::Point2f offset = cv::Point2f(3,3);
-      arucoFieldCornerMarkersRealWorldPosition[0] = cv::Point2f(3,3) - offset; // Marker 4 : top left  
-      arucoFieldCornerMarkersRealWorldPosition[1] = cv::Point2f(3, 285) - offset; // Marker 5: bottom left
-      arucoFieldCornerMarkersRealWorldPosition[2] = cv::Point2f(395, 285) - offset; // Marker 6: bottom right
-      arucoFieldCornerMarkersRealWorldPosition[3] = cv::Point2f(395, 3) - offset; // Marker 7: top right
+      cv::Point2f offset = cv::Point2f(0,0);
+      int idx0 = arucoIdToIndexMap[4];
+      int idx1 = arucoIdToIndexMap[5];
+      int idx2 = arucoIdToIndexMap[6];
+      int idx3 = arucoIdToIndexMap[7];
 
-      realWorldSize = cv::Size(398 * 2, 288 * 2);
+      arucoFieldCornerMarkersRealWorldPosition[idx0] = cv::Point2f(3,3) - offset; // Marker 4 : top left  
+      arucoFieldCornerMarkersRealWorldPosition[idx1] = cv::Point2f(3, 285) - offset; // Marker 5: bottom left
+      arucoFieldCornerMarkersRealWorldPosition[idx2] = cv::Point2f(395, 285) - offset; // Marker 6: bottom right
+      arucoFieldCornerMarkersRealWorldPosition[idx3] = cv::Point2f(395, 3) - offset; // Marker 7: top right
+
+      realWorldSize = cv::Size(398, 288);
+
     }
 
     void handleNewFrame(Mat &frame) {
@@ -184,7 +193,7 @@ class ColorTracker
         }
 
         if(markerId >= 4 && markerId <= 7) {
-          int idx = markerId - 4;
+          int idx = arucoIdToIndexMap[markerId];
           if(!fieldMarkerInitialized[idx]) {
             ROS_INFO("field corner %i, (%f, %f)", markerId, cornerOfInterest.x, cornerOfInterest.y);
             arucoFieldCornerMarkersPixelPosition[idx] = cornerOfInterest;
@@ -330,6 +339,12 @@ class ColorTracker
       if(pixelToWorldTransformInitialized) {
         Mat fieldWarped;
         warpPerspective(undistorted, fieldWarped, pixelToWorldTransform, realWorldSize);
+
+        cv::Point2f referenceA = cv::Point2f(66,71);
+        cv::Point2f referenceB = cv::Point2f(40,106);
+        circle(fieldWarped, referenceA, 5, Scalar(0,0,255), 2);
+        circle(fieldWarped, referenceB, 5, Scalar(0,0,255), 2);
+
         imshow("field warped", fieldWarped);
 
       }
