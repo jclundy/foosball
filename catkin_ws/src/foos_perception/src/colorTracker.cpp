@@ -57,6 +57,8 @@ class ColorTracker
     bool fieldMarkerInitialized[4] = {false, false, false, false};
 
     Mat pixelToWorldTransform;
+    bool pixelToWorldTransformInitialized = false;
+    Size realWorldSize;
 
     ColorTracker() {
 
@@ -95,10 +97,13 @@ class ColorTracker
       croppedFrameCorners[2] = newTopLeft;
       croppedFrameCorners[3] = newBottomLeft;
 
-      arucoFieldCornerMarkersRealWorldPosition[0] = cv::Point2f(3,3); // top left
-      arucoFieldCornerMarkersRealWorldPosition[1] = cv::Point2f(3, 285); // bottom left
-      arucoFieldCornerMarkersRealWorldPosition[2] = cv::Point2f(395, 285); // bottom right
-      arucoFieldCornerMarkersRealWorldPosition[3] = cv::Point2f(395, 3); // top right
+      cv::Point2f offset = cv::Point2f(3,3);
+      arucoFieldCornerMarkersRealWorldPosition[0] = cv::Point2f(3,3) - offset; // Marker 4 : top left  
+      arucoFieldCornerMarkersRealWorldPosition[1] = cv::Point2f(3, 285) - offset; // Marker 5: bottom left
+      arucoFieldCornerMarkersRealWorldPosition[2] = cv::Point2f(395, 285) - offset; // Marker 6: bottom right
+      arucoFieldCornerMarkersRealWorldPosition[3] = cv::Point2f(395, 3) - offset; // Marker 7: top right
+
+      realWorldSize = cv::Size(398 * 2, 288 * 2);
     }
 
     void handleNewFrame(Mat &frame) {
@@ -193,6 +198,46 @@ class ColorTracker
         ROS_INFO("initializing warp transform");
         warpTransform = getPerspectiveTransform(regionOfInterestCorners, croppedFrameCorners);
         warpTransformInitialized = true;
+
+        double m00 = warpTransform.at<double>(0,0);
+        double m01 = warpTransform.at<double>(0,1);
+        double m02 = warpTransform.at<double>(0,2);
+        double m10 = warpTransform.at<double>(1,0);
+        double m11 = warpTransform.at<double>(1,1);
+        double m12 = warpTransform.at<double>(1,2);
+        double m20 = warpTransform.at<double>(2,0);
+        double m21 = warpTransform.at<double>(2,1);
+        double m22 = warpTransform.at<double>(2,2);
+
+        ROS_INFO("initializing warp transform values");
+
+        ROS_INFO("%f, %f, %f", m00, m01, m01);
+        ROS_INFO("%f, %f, %f", m10, m11, m11);
+        ROS_INFO("%f, %f, %f", m20, m21, m21);
+
+      }
+
+      if(fieldMarkersInitialized() && !pixelToWorldTransformInitialized) {
+        ROS_INFO("initializing field warp transform");
+
+        pixelToWorldTransform = getPerspectiveTransform(arucoFieldCornerMarkersPixelPosition, arucoFieldCornerMarkersRealWorldPosition);
+        pixelToWorldTransformInitialized = true;
+
+        double m00 = pixelToWorldTransform.at<double>(0,0);
+        double m01 = pixelToWorldTransform.at<double>(0,1);
+        double m02 = pixelToWorldTransform.at<double>(0,2);
+        double m10 = pixelToWorldTransform.at<double>(1,0);
+        double m11 = pixelToWorldTransform.at<double>(1,1);
+        double m12 = pixelToWorldTransform.at<double>(1,2);
+        double m20 = pixelToWorldTransform.at<double>(2,0);
+        double m21 = pixelToWorldTransform.at<double>(2,1);
+        double m22 = pixelToWorldTransform.at<double>(2,2);
+
+        ROS_INFO("field warp transform values");
+        ROS_INFO("%f, %f, %f", m00, m01, m01);
+        ROS_INFO("%f, %f, %f", m10, m11, m11);
+        ROS_INFO("%f, %f, %f", m20, m21, m21);  
+
       }
 
       // Step 3) - perform perspective transform
@@ -246,8 +291,6 @@ class ColorTracker
       // drawRejectedArucoCorners(markupFrame, rejectedCorners);
       drawRegionOfInterest(markupFrame);
       drawFieldMarkers(markupFrame);
-
-      cv::MatSize originalSize = markupFrame.size;
       
       Mat markupResized;
       resize(markupFrame, markupResized, Size(), 0.5, 0.5);
@@ -272,12 +315,24 @@ class ColorTracker
               cv::FONT_HERSHEY_SIMPLEX, 0.25,
               Scalar(0, 0, 255), 1, LINE_8);
 
-      imshow("blurred", warped);
-      imshow("masked", masked);
-      imshow("dilated", dilated);
+
+
+      // Mat fieldWarpedResized;
+      // resize(fieldWarped, fieldWarpedResized, Size(), 0.5, 0.5);
+
+
+      // imshow("blurred", warped);
+      // imshow("masked", masked);
+      // imshow("dilated", dilated);
       imshow("pre-processing markup", markupResized);
       imshow("detection markup", detectionMarkupFrame);
 
+      if(pixelToWorldTransformInitialized) {
+        Mat fieldWarped;
+        warpPerspective(undistorted, fieldWarped, pixelToWorldTransform, realWorldSize);
+        imshow("field warped", fieldWarped);
+
+      }
       // publish data
       // ROS_INFO("radius %f", radius);
       // ROS_INFO("ball position px (%i, %i)", ballCenter.x, ballCenter.y);
@@ -286,8 +341,16 @@ class ColorTracker
 
     bool regionOfInterestInitialized() {
       bool result = true;
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i <= 3; i++) {
         result &= regionOfInterestCornersInitialized[i];
+      }
+      return result;
+    }
+
+    bool fieldMarkersInitialized() {
+      bool result = true;
+      for (int i = 0; i <= 3; i++) {
+        result &= fieldMarkerInitialized[i];
       }
       return result;
     }
@@ -308,7 +371,18 @@ class ColorTracker
     void drawFieldMarkers(Mat frame) {
       for (int i = 0; i <= 3; i++) {
         if(fieldMarkerInitialized[i]) {
-          circle(frame, arucoFieldCornerMarkersPixelPosition[i], 10, Scalar(0,255,0),2, FILLED);
+          cv::Point2f corner = arucoFieldCornerMarkersPixelPosition[i];
+
+          circle(frame, corner, 10, Scalar(0,255,0),2, FILLED);
+          Point textPosition(corner.x + 20, corner.y + 20);
+
+          std::string text = "Corner pixels : (";
+          text += std::to_string(corner.x);
+          text += ", ";
+          text += std::to_string(corner.y);
+          text += ")";
+
+          putText(frame, text, textPosition, cv::FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 255), 1, LINE_8);
         }
       }
     }
