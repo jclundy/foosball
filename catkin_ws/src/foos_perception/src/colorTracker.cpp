@@ -24,6 +24,7 @@ http://wiki.ros.org/cv_bridge/Tutorials/UsingCvBridgeToConvertBetweenROSImagesAn
 using namespace cv;
 
 void drawArucoCorners(Mat &, std::vector<std::vector<cv::Point2f>>, std::vector<int>);
+void drawRejectedArucoCorners(Mat &, std::vector<std::vector<cv::Point2f>>);
 
 class ColorTracker
 {
@@ -50,6 +51,11 @@ class ColorTracker
     std::vector<float> colorMaskUpperBound;
     std::vector<float> colorMaskLowerBound;
 
+    cv::Point2f arucoFieldCornerMarkersRealWorldPosition[4];
+    cv::Point2f arucoFieldCornerMarkersPixelPosition[4];
+
+    Mat pixelToWorldTransform;
+
     ColorTracker() {
 
 
@@ -66,8 +72,8 @@ class ColorTracker
 
       ROS_INFO("Initialized aruco");
 
-      outputWidth = 800;
-      outputHeight = 600;
+      outputWidth = 398 * 2;
+      outputHeight = 288 * 2;
       outputImageSize = Size(outputWidth, outputHeight);
 
       ROS_INFO("Initialized output image size");
@@ -81,10 +87,16 @@ class ColorTracker
       cv::Point2f newTopRight = cv::Point2f(outputWidth, 0);
       cv::Point2f newTopLeft = cv::Point2f(0, 0);
       cv::Point2f newBottomLeft = cv::Point2f(0, outputHeight);
+
       croppedFrameCorners[0] = newBottomRight;
       croppedFrameCorners[1] = newTopRight;
       croppedFrameCorners[2] = newTopLeft;
       croppedFrameCorners[3] = newBottomLeft;
+
+      arucoFieldCornerMarkersRealWorldPosition[0] = cv::Point2f(3,3); // top left
+      arucoFieldCornerMarkersRealWorldPosition[1] = cv::Point2f(3, 285); // bottom left
+      arucoFieldCornerMarkersRealWorldPosition[2] = cv::Point2f(395, 285); // bottom right
+      arucoFieldCornerMarkersRealWorldPosition[3] = cv::Point2f(395, 3); // top right
     }
 
     void handleNewFrame(Mat &frame) {
@@ -95,10 +107,15 @@ class ColorTracker
       // undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
       frame.copyTo(undistorted);
 
+      // scale down image to roughly 600x800
+      
+
+
       // Step 2) - detect aruco markers
       std::vector<std::vector<cv::Point2f>> markerCorners;
+      std::vector<std::vector<cv::Point2f>> rejectedCorners;
       std::vector<int> markerIds;
-      aruco::detectMarkers(undistorted, arucoDictionary, markerCorners, markerIds, arucoDetectorParameters);
+      aruco::detectMarkers(undistorted, arucoDictionary, markerCorners, markerIds, arucoDetectorParameters, rejectedCorners);
 
       cv::Point2f cornerOfInterest;
 
@@ -126,6 +143,26 @@ class ColorTracker
             cornerOfInterest = markerCorners[i][0];
             break;
           }
+          case 4: {
+            // top left
+            arucoFieldCornerMarkersPixelPosition[0] = markerCorners[i][1];
+            break;
+          }
+          case 5: {
+            // bottom left
+            arucoFieldCornerMarkersPixelPosition[1] = markerCorners[i][1];
+            break;
+          }
+          case 6: {
+            // bottom right
+            arucoFieldCornerMarkersPixelPosition[2] = markerCorners[i][1];
+            break;
+          }
+          case 7: {
+            // top right
+            arucoFieldCornerMarkersPixelPosition[3] = markerCorners[i][1];
+            break;
+          }                              
           default: {
             break;
           }
@@ -190,52 +227,11 @@ class ColorTracker
         }
       }
 
-      Mat gray;
-      cvtColor(warped, gray, COLOR_BGR2GRAY);
-      medianBlur(gray, gray, 5);
-
-      // Step 11) Canny edge detection
-      Mat cannyOutput;
-      Canny(gray, cannyOutput, 100, 200);
-
-      // Step 12) Hough circles
-      std::vector<Vec3f> circles;
-      HoughCircles(gray, circles, HOUGH_GRADIENT, 1, gray.rows/16, 100, 100, 10, 400);
-
-      // Step 13) Hough lines
-      std::vector<Vec2f> lines;
-      HoughLines(cannyOutput, lines, 1, CV_PI/180, 150, 0,0);
-
-      Mat experimentMarkup;
-      warped.copyTo(experimentMarkup);
-
-      for(size_t i = 0; i < circles.size(); i++) {
-        Vec3i c = circles[i];
-        Point center = Point(c[0], c[1]);
-        // circle center
-        circle( experimentMarkup, center, 1, Scalar(0,100,100), 3, LINE_AA);
-        // circle outline
-        int radius = c[2];
-        circle( experimentMarkup, center, radius, Scalar(255,0,255), 3, LINE_AA);
-      }
-
-      for( size_t i = 0; i < lines.size(); i++ ) {
-          float rho = lines[i][0], theta = lines[i][1];
-          Point pt1, pt2;
-          double a = cos(theta), b = sin(theta);
-          double x0 = a*rho, y0 = b*rho;
-          pt1.x = cvRound(x0 + 1000*(-b));
-          pt1.y = cvRound(y0 + 1000*(a));
-          pt2.x = cvRound(x0 - 1000*(-b));
-          pt2.y = cvRound(y0 - 1000*(a));
-          line( experimentMarkup, pt1, pt2, Scalar(0,0,255), 3, LINE_AA);
-      }
-
-
       // Mark up
       Mat markupFrame;
       undistorted.copyTo(markupFrame);
       drawArucoCorners(markupFrame,markerCorners, markerIds);
+      drawRejectedArucoCorners(markupFrame, rejectedCorners);
       drawRegionOfInterest(markupFrame);
 
       Mat detectionMarkupFrame;
@@ -263,9 +259,6 @@ class ColorTracker
       imshow("dilated", dilated);
       imshow("pre-processing markup", markupFrame);
       imshow("detection markup", detectionMarkupFrame);
-      imshow("canny", cannyOutput);
-
-      imshow("circle detection", experimentMarkup);
 
       // publish data
       ROS_INFO("radius %f", radius);
@@ -366,5 +359,26 @@ void drawArucoCorners(Mat &frame,
       cv::Point2f bottomLeft = markerCorners[i][3];
 
       cv::rectangle(frame, topLeft, bottomRight, Scalar(0, 255, 0), 2);
+    }
+}
+
+void drawRejectedArucoCorners(Mat &frame, std::vector<std::vector<cv::Point2f>> markerCorners) {
+    for (int i = 0; i < markerCorners.size(); i++) {
+      cv::Point2f topLeft = markerCorners[i][0];
+      cv::Point2f topRight = markerCorners[i][1];
+      cv::Point2f bottomRight = markerCorners[i][2];
+      cv::Point2f bottomLeft = markerCorners[i][3];
+
+      cv::rectangle(frame, topLeft, bottomRight, Scalar(0, 255, 0), 2);
+
+      Point textPosition((topLeft.x + bottomRight.x) / 2, (topLeft.y + bottomRight.y) / 2);
+
+      std::string ballPositionText = "idx ";
+      ballPositionText += std::to_string(i);
+
+      putText(frame, ballPositionText, textPosition,
+              cv::FONT_HERSHEY_SIMPLEX, 0.15,
+              Scalar(0, 0, 255), 1, LINE_8);
+
     }
 }
