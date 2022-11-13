@@ -54,6 +54,8 @@ class ColorTracker
     cv::Point2f arucoFieldCornerMarkersRealWorldPosition[4];
     cv::Point2f arucoFieldCornerMarkersPixelPosition[4];
 
+    bool fieldMarkerInitialized[4] = {false, false, false, false};
+
     Mat pixelToWorldTransform;
 
     ColorTracker() {
@@ -145,22 +147,22 @@ class ColorTracker
           }
           case 4: {
             // top left
-            arucoFieldCornerMarkersPixelPosition[0] = markerCorners[i][1];
+            cornerOfInterest = markerCorners[i][1];
             break;
           }
           case 5: {
             // bottom left
-            arucoFieldCornerMarkersPixelPosition[1] = markerCorners[i][1];
+            cornerOfInterest = markerCorners[i][1];
             break;
           }
           case 6: {
             // bottom right
-            arucoFieldCornerMarkersPixelPosition[2] = markerCorners[i][1];
+            cornerOfInterest = markerCorners[i][1];
             break;
           }
           case 7: {
             // top right
-            arucoFieldCornerMarkersPixelPosition[3] = markerCorners[i][1];
+            cornerOfInterest = markerCorners[i][1];
             break;
           }                              
           default: {
@@ -175,6 +177,16 @@ class ColorTracker
             regionOfInterestCornersInitialized[markerId] = true;
           }
         }
+
+        if(markerId >= 4 && markerId < 7) {
+          int idx = markerId - 4;
+          if(!fieldMarkerInitialized[idx]) {
+            ROS_INFO("field corner %i, (%f, %f)", markerId, cornerOfInterest.x, cornerOfInterest.y);
+            arucoFieldCornerMarkersPixelPosition[idx] = cornerOfInterest;
+            fieldMarkerInitialized[idx] = true;
+          }
+        }
+
       }
 
       if(regionOfInterestInitialized() && !warpTransformInitialized) {
@@ -231,8 +243,14 @@ class ColorTracker
       Mat markupFrame;
       undistorted.copyTo(markupFrame);
       drawArucoCorners(markupFrame,markerCorners, markerIds);
-      drawRejectedArucoCorners(markupFrame, rejectedCorners);
+      // drawRejectedArucoCorners(markupFrame, rejectedCorners);
       drawRegionOfInterest(markupFrame);
+      drawFieldMarkers(markupFrame);
+
+      cv::MatSize originalSize = markupFrame.size;
+      
+      Mat markupResized;
+      resize(markupFrame, markupResized, Size(), 0.5, 0.5);
 
       Mat detectionMarkupFrame;
       warped.copyTo(detectionMarkupFrame);
@@ -257,12 +275,12 @@ class ColorTracker
       imshow("blurred", warped);
       imshow("masked", masked);
       imshow("dilated", dilated);
-      imshow("pre-processing markup", markupFrame);
+      imshow("pre-processing markup", markupResized);
       imshow("detection markup", detectionMarkupFrame);
 
       // publish data
-      ROS_INFO("radius %f", radius);
-      ROS_INFO("ball position px (%i, %i)", ballCenter.x, ballCenter.y);
+      // ROS_INFO("radius %f", radius);
+      // ROS_INFO("ball position px (%i, %i)", ballCenter.x, ballCenter.y);
 
     }
 
@@ -286,6 +304,14 @@ class ColorTracker
         line(frame, regionOfInterestCorners[2], regionOfInterestCorners[3], Scalar(255, 0, 0), 2);
       }
     }
+
+    void drawFieldMarkers(Mat frame) {
+      for (int i = 0; i <= 3; i++) {
+        if(fieldMarkerInitialized[i]) {
+          circle(frame, arucoFieldCornerMarkersPixelPosition[i], 10, Scalar(0,255,0),2, FILLED);
+        }
+      }
+    }
 };
 
 ColorTracker* ballTracker;
@@ -307,7 +333,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     Mat current_frame = cv_ptr->image;
 
     // Display the current frame
-    imshow("raw", current_frame); 
+    // imshow("raw", current_frame); 
 
     ballTracker->handleNewFrame(current_frame);
 
