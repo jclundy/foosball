@@ -147,22 +147,22 @@ class ColorTracker
           }
           case 4: {
             // top left
-            cornerOfInterest = markerCorners[i][1];
+            cornerOfInterest = markerCorners[i][0];
             break;
           }
           case 5: {
             // bottom left
-            cornerOfInterest = markerCorners[i][1];
+            cornerOfInterest = markerCorners[i][0];
             break;
           }
           case 6: {
             // bottom right
-            cornerOfInterest = markerCorners[i][1];
+            cornerOfInterest = markerCorners[i][0];
             break;
           }
           case 7: {
             // top right
-            cornerOfInterest = markerCorners[i][1];
+            cornerOfInterest = markerCorners[i][0];
             break;
           }                              
           default: {
