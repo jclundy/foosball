@@ -60,7 +60,7 @@ class ColorTracker
     bool pixelToWorldTransformInitialized = false;
     Size realWorldSize;
 
-    int arucoIdToIndexMap[8] = {0,1,2,3, 2, 3, 0, 1 };
+    int arucoIdToIndexMap[8] = {0,1,2,3, 0, 1, 2, 3 };
 
 
     ColorTracker() {
@@ -100,7 +100,7 @@ class ColorTracker
       croppedFrameCorners[2] = newTopLeft;
       croppedFrameCorners[3] = newBottomLeft;
 
-      cv::Point2f offset = cv::Point2f(0,0);
+      cv::Point2f offset = cv::Point2f(3,3);
       int idx0 = arucoIdToIndexMap[4];
       int idx1 = arucoIdToIndexMap[5];
       int idx2 = arucoIdToIndexMap[6];
@@ -111,7 +111,8 @@ class ColorTracker
       arucoFieldCornerMarkersRealWorldPosition[idx2] = cv::Point2f(395, 285) - offset; // Marker 6: bottom right
       arucoFieldCornerMarkersRealWorldPosition[idx3] = cv::Point2f(395, 3) - offset; // Marker 7: top right
 
-      realWorldSize = cv::Size(398, 288);
+      // realWorldSize = cv::Size(398, 288);
+      realWorldSize = cv::Size(392, 282);
 
     }
 
@@ -121,7 +122,11 @@ class ColorTracker
       Mat newCameraMatrix = getOptimalNewCameraMatrix(cameraMatrix, distortionCoefficients, frame.size(), 1, frame.size(), 0);
       Mat undistorted;
       // undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
-      frame.copyTo(undistorted);
+      // frame.copyTo(undistorted);
+
+      Mat undistortedResized;
+      resize(frame, undistorted, Size(), 0.5, 0.5);
+
 
       // scale down image to roughly 600x800
       
@@ -249,14 +254,21 @@ class ColorTracker
 
       }
 
-      // Step 3) - perform perspective transform
+/**
+ * @brief 
+ * 
+ *
+      // Step 3) - apply mask on ROI perform perspective transform
       Mat warped;
       warpPerspective(undistorted, warped, warpTransform, outputImageSize);
+
+ */
+  
 
       // Step 4) Gaussian blur
       Mat blurred;
       cv::Size2d kernelSize(11,11);
-      GaussianBlur(warped, blurred, kernelSize, 0);
+      GaussianBlur(undistorted, blurred, kernelSize, 0);
 
       // Step 5) Convert to HSV
       Mat hsv;
@@ -264,11 +276,62 @@ class ColorTracker
 
       // Step 6) Apply color mask
       Mat masked;
+      Mat roiMask;
       inRange(hsv, colorMaskLowerBound, colorMaskUpperBound, masked);
+
+      Mat maskedOutput;
+      if(regionOfInterestInitialized()) {
+
+        Mat masked2;
+        masked.convertTo(masked2, CV_8U);
+
+        // Step 6a) ROI mask
+        roiMask = Mat::zeros(masked2.size(), masked2.type());
+        int contourNumPoints[1] = {4};
+
+        Point roiContours[4];
+        for (int i = 0; i < 4; i++) {
+          roiContours[i].x = round(regionOfInterestCorners[i].x);
+          roiContours[i].y = round(regionOfInterestCorners[i].y);
+        }
+
+
+        static bool printROI = true;
+        if(printROI) {
+          ROS_INFO("ROI points:");
+          printROI = false;
+          for(int i = 0; i < 4; i++) {
+            ROS_INFO("Corner %i: (%li, %li)", i, roiContours[i].x, roiContours[i].y);
+          }
+        }
+
+        const Point* countoursPtr[1] = {roiContours}; 
+        fillPoly(roiMask, countoursPtr, contourNumPoints, 1, Scalar(255), LINE_8);
+
+        Mat blurredCopy;
+        blurred.copyTo(blurredCopy);
+        fillPoly(blurredCopy, countoursPtr, contourNumPoints, 1, Scalar(255,255,255), LINE_8);
+        imshow("blurred copy", blurredCopy);
+
+        maskedOutput = Mat::zeros(masked2.size(), masked2.type());
+        static bool printShapes = true;
+
+        if(printShapes) {
+          printShapes = false;
+          ROS_INFO("masked2 shape (%i,%i)", masked2.cols, masked2.rows);
+          ROS_INFO("roi mask shape (%i,%i)", roiMask.cols, roiMask.rows);
+          ROS_INFO("output shape (%i,%i)", maskedOutput.cols, maskedOutput.rows);
+        }
+        bitwise_and(masked2, roiMask, maskedOutput);
+      } else {
+        masked.copyTo(maskedOutput);
+      }
+
+
 
       // Step 7) Perform erosion
       Mat eroded;
-      erode(masked, eroded, Mat(),Point(-1,-1), 2);
+      erode(maskedOutput, eroded, Mat(),Point(-1,-1), 2);
 
       // Step 8) Perform dilation
       Mat dilated;
@@ -305,7 +368,7 @@ class ColorTracker
       resize(markupFrame, markupResized, Size(), 0.5, 0.5);
 
       Mat detectionMarkupFrame;
-      warped.copyTo(detectionMarkupFrame);
+      undistorted.copyTo(detectionMarkupFrame);
       for (size_t i = 0; i < contours.size(); i++) {
         drawContours(detectionMarkupFrame, contours, (int)i, Scalar(255,0,0), 2, LINE_8, hierarchy);
       }
@@ -325,13 +388,11 @@ class ColorTracker
               Scalar(0, 0, 255), 1, LINE_8);
 
 
-
-      // Mat fieldWarpedResized;
-      // resize(fieldWarped, fieldWarpedResized, Size(), 0.5, 0.5);
-
-
-      // imshow("blurred", warped);
-      // imshow("masked", masked);
+      // imshow("undistorted", undistortedResized);
+      // imshow("blurred", blurred);
+      imshow("masked", masked);
+      imshow("roi mask", roiMask);
+      imshow("masked output", maskedOutput);
       // imshow("dilated", dilated);
       imshow("pre-processing markup", markupResized);
       imshow("detection markup", detectionMarkupFrame);
@@ -345,6 +406,15 @@ class ColorTracker
         circle(fieldWarped, referenceA, 5, Scalar(0,0,255), 2);
         circle(fieldWarped, referenceB, 5, Scalar(0,0,255), 2);
 
+        double ballPositionValues[3] = {ballCenter.x, ballCenter.y, 1};
+        Mat ballPositionUnWarped = Mat(3, 1, CV_64F, ballPositionValues);
+
+        Mat ballPositionWarped = pixelToWorldTransform.inv() * ballPositionUnWarped;
+        float scaleFactor = ballPositionWarped.at<double>(2);
+        ballPositionWarped /= scaleFactor;
+
+        Point2f ballPosition2d = cv::Point2f(ballPositionWarped.at<double>(0), ballPositionWarped.at<double>(1)) - cv::Point2f(3,3);
+        circle(fieldWarped, ballPosition2d, 10, Scalar(0,0,255), 2);
         imshow("field warped", fieldWarped);
 
       }
