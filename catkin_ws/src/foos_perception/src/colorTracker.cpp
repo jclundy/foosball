@@ -29,11 +29,9 @@ class ColorTracker
 {
   public: 
     Mat cameraMatrix;
-    double cameraMatrixValues[9] = { 798.86256178, 0, 401.52277111,
-                              0, 812.90563717, 319.32828483,
-                              0, 0, 1.0};
+    double cameraMatrixValues[9] = { 1022.118843226931, 0, 656.8463531767748, 0, 1023.925425916706, 427.0013534242285, 0, 0, 1};
     Mat distortionCoefficients;
-    double defaultDistortionCoefficients[5] = {-3.51591693e-01, 1.92604733e-01, 3.20674878e-04, 1.56190371e-04, -1.16111572e-01};
+    double defaultDistortionCoefficients[5] = {-0.3926204279821043, 0.143966972216399, -0.005840266157887177, -0.002891787240109053, 0};
 
     Ptr<aruco::Dictionary> arucoDictionary;
     Ptr<aruco::DetectorParameters> arucoDetectorParameters;
