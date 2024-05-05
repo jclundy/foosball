@@ -117,10 +117,10 @@ class ColorTracker
     void handleNewFrame(Mat &frame) {
 
       // Step 1 - perform distortion correction
-      // Mat newCameraMatrix = getOptimalNewCameraMatrix(cameraMatrix, distortionCoefficients, frame.size(), 1, frame.size(), 0);
+      Mat newCameraMatrix = getOptimalNewCameraMatrix(cameraMatrix, distortionCoefficients, frame.size(), 1, frame.size(), 0);
       Mat undistorted;
-      // undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
-      frame.copyTo(undistorted);
+      undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
+      // frame.copyTo(undistorted);
 
       // Mat undistortedResized;
       // resize(frame, undistorted, Size(), 0.5, 0.5);
