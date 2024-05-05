@@ -2,6 +2,7 @@
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
+#include "geometry_msgs/Pose2D.h"
 // OpenCV includes
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/calib3d.hpp>
@@ -25,6 +26,8 @@ using namespace cv;
 
 void drawArucoCorners(Mat &, std::vector<std::vector<cv::Point2f>>, std::vector<int>);
 void drawRejectedArucoCorners(Mat &, std::vector<std::vector<cv::Point2f>>);
+
+ros::Publisher positionPub;
 
 class ColorTracker
 {
@@ -59,7 +62,6 @@ class ColorTracker
     Size realWorldSize;
 
     int arucoIdToIndexMap[8] = {0,1,2,3, 0, 1, 2, 3 };
-
 
     ColorTracker() {
 
@@ -120,15 +122,9 @@ class ColorTracker
       Mat newCameraMatrix = getOptimalNewCameraMatrix(cameraMatrix, distortionCoefficients, frame.size(), 1, frame.size(), 0);
       Mat undistorted;
       undistort(frame, undistorted, cameraMatrix, distortionCoefficients, newCameraMatrix);
-      // frame.copyTo(undistorted);
-
-      // Mat undistortedResized;
-      // resize(frame, undistorted, Size(), 0.5, 0.5);
-
-
-      // scale down image to roughly 600x800
       
-
+      Mat inputStage0;
+      undistorted.copyTo(inputStage0);
 
       // Step 2) - detect aruco markers
       std::vector<std::vector<cv::Point2f>> markerCorners;
@@ -252,21 +248,32 @@ class ColorTracker
 
       }
 
-/**
- * @brief 
- * 
- *
       // Step 3) - apply mask on ROI perform perspective transform
-      Mat warped;
-      warpPerspective(undistorted, warped, warpTransform, outputImageSize);
+      // Mat warped;
+      // warpPerspective(undistorted, warped, warpTransform, outputImageSize);
 
- */
-  
+      Mat fieldWarped;
+      if(pixelToWorldTransformInitialized) {
+        warpPerspective(inputStage0, fieldWarped, pixelToWorldTransform, realWorldSize);
+
+        cv::Point2f referenceA = cv::Point2f(66,71);
+        cv::Point2f referenceB = cv::Point2f(40,106);
+        circle(fieldWarped, referenceA, 5, Scalar(0,0,255), 2);
+        circle(fieldWarped, referenceB, 5, Scalar(0,0,255), 2);
+        imshow("field warped", fieldWarped);
+
+      } else {
+        return;
+      }
+
+
+      Mat inputStage1;
+      fieldWarped.copyTo(inputStage1);
 
       // Step 4) Gaussian blur
       Mat blurred;
       cv::Size2d kernelSize(11,11);
-      GaussianBlur(undistorted, blurred, kernelSize, 0);
+      GaussianBlur(fieldWarped, blurred, kernelSize, 0);
 
       // Step 5) Convert to HSV
       Mat hsv;
@@ -274,16 +281,18 @@ class ColorTracker
 
       // Step 6) Apply color mask
       Mat masked;
-      Mat roiMask;
       inRange(hsv, colorMaskLowerBound, colorMaskUpperBound, masked);
 
       Mat maskedOutput;
+
+#ifdef USE_POLY_REGION
       if(regionOfInterestInitialized()) {
 
         Mat masked2;
         masked.convertTo(masked2, CV_8U);
 
         // Step 6a) ROI mask
+        Mat roiMask;
         roiMask = Mat::zeros(masked2.size(), masked2.type());
         int contourNumPoints[1] = {4};
 
@@ -324,8 +333,8 @@ class ColorTracker
       } else {
         masked.copyTo(maskedOutput);
       }
-
-
+#endif      
+      masked.copyTo(maskedOutput);
 
       // Step 7) Perform erosion
       Mat eroded;
@@ -343,6 +352,7 @@ class ColorTracker
       // Step 10) Find largest countour
       Point ballCenter;
       float radius = 0;
+      bool ballFound = false;
 
       for (size_t i = 0; i < contours.size(); i++) {
         Point2f contourCenter;
@@ -351,12 +361,13 @@ class ColorTracker
         if(contourRadius > radius) {
           radius = contourRadius;
           ballCenter = contourCenter;
+          ballFound = true;
         }
       }
 
       // Mark up
       Mat markupFrame;
-      undistorted.copyTo(markupFrame);
+      inputStage0.copyTo(markupFrame);
       drawArucoCorners(markupFrame,markerCorners, markerIds);
       // drawRejectedArucoCorners(markupFrame, rejectedCorners);
       drawRegionOfInterest(markupFrame);
@@ -366,59 +377,56 @@ class ColorTracker
       resize(markupFrame, markupResized, Size(), 0.5, 0.5);
 
       Mat detectionMarkupFrame;
-      undistorted.copyTo(detectionMarkupFrame);
+      inputStage1.copyTo(detectionMarkupFrame);
       for (size_t i = 0; i < contours.size(); i++) {
         drawContours(detectionMarkupFrame, contours, (int)i, Scalar(255,0,0), 2, LINE_8, hierarchy);
       }
-      circle(detectionMarkupFrame, ballCenter, radius, Scalar(0,255,0), 2);
 
+      if(ballFound) {
+        circle(detectionMarkupFrame, ballCenter, radius, Scalar(0,255,0), 2);
 
-      Point textPosition(ballCenter.x + radius, ballCenter.y + radius);
+        Point textPosition(ballCenter.x + radius, ballCenter.y + radius);
 
-      std::string ballPositionText = "Ball position : (";
-      ballPositionText += std::to_string(ballCenter.x);
-      ballPositionText += ", ";
-      ballPositionText += std::to_string(ballCenter.y);
-      ballPositionText += ")";
+        std::string ballPositionText = "Ball position : (";
+        ballPositionText += std::to_string(ballCenter.x);
+        ballPositionText += ", ";
+        ballPositionText += std::to_string(ballCenter.y);
+        ballPositionText += ")";
 
-      putText(detectionMarkupFrame, ballPositionText, textPosition,
-              cv::FONT_HERSHEY_SIMPLEX, 0.25,
-              Scalar(0, 0, 255), 1, LINE_8);
+        putText(detectionMarkupFrame, ballPositionText, textPosition,
+                cv::FONT_HERSHEY_SIMPLEX, 0.25,
+                Scalar(0, 0, 255), 1, LINE_8);
 
-
-      // imshow("undistorted", undistortedResized);
-      // imshow("blurred", blurred);
-      imshow("masked", masked);
-      imshow("roi mask", roiMask);
-      imshow("masked output", maskedOutput);
-      // imshow("dilated", dilated);
-      imshow("pre-processing markup", markupResized);
-      imshow("detection markup", detectionMarkupFrame);
-
-      if(pixelToWorldTransformInitialized) {
-        Mat fieldWarped;
-        warpPerspective(undistorted, fieldWarped, pixelToWorldTransform, realWorldSize);
-
-        cv::Point2f referenceA = cv::Point2f(66,71);
-        cv::Point2f referenceB = cv::Point2f(40,106);
-        circle(fieldWarped, referenceA, 5, Scalar(0,0,255), 2);
-        circle(fieldWarped, referenceB, 5, Scalar(0,0,255), 2);
 
         double ballPositionValues[3] = {ballCenter.x, ballCenter.y, 1};
         Mat ballPositionUnWarped = Mat(3, 1, CV_64F, ballPositionValues);
 
-        Mat ballPositionWarped = pixelToWorldTransform.inv() * ballPositionUnWarped;
-        float scaleFactor = ballPositionWarped.at<double>(2);
-        ballPositionWarped /= scaleFactor;
+        // Only publish ball position if it is found
+        geometry_msgs::Pose2D ballPoseMsg;
+        ballPoseMsg.x = ballCenter.x;
+        ballPoseMsg.y = ballCenter.y;
+        positionPub.publish(ballPoseMsg);
 
-        Point2f ballPosition2d = cv::Point2f(ballPositionWarped.at<double>(0), ballPositionWarped.at<double>(1)) - cv::Point2f(3,3);
-        circle(fieldWarped, ballPosition2d, 10, Scalar(0,0,255), 2);
-        imshow("field warped", fieldWarped);
+        // Mat ballPositionWarped = pixelToWorldTransform.inv() * ballPositionUnWarped;
+        // float scaleFactor = ballPositionWarped.at<double>(2);
+        // ballPositionWarped *= scaleFactor;
+
+        // Point2f ballPosition2d = cv::Point2f(ballPositionWarped.at<double>(0), ballPositionWarped.at<double>(1));
+        // circle(fieldWarped, ballPosition2d, 10, Scalar(0,0,255), 2);
 
       }
-      // publish data
-      // ROS_INFO("radius %f", radius);
-      // ROS_INFO("ball position px (%i, %i)", ballCenter.x, ballCenter.y);
+
+
+      // imshow("inputStage1", undistortedResized);
+      // imshow("blurred", blurred);
+      imshow("masked", masked);
+#ifdef USE_POLY_REGION
+      imshow("roi mask", roiMask);
+#endif
+      imshow("masked output", maskedOutput);
+      // imshow("dilated", dilated);
+      imshow("pre-processing markup", markupResized);
+      imshow("detection markup", detectionMarkupFrame);
 
     }
 
@@ -523,7 +531,10 @@ int main(int argc, char **argv)
    
   // Subscribe to the /camera topic
   image_transport::Subscriber sub = it.subscribe("videofile/image_raw", 1, imageCallback);
-  
+
+  // Initialize position publisher  
+  positionPub = nh.advertise<geometry_msgs::Pose2D>("foosball/ball_position", 10);
+
   ROS_INFO("Subscribed");
   // Make sure we keep reading new video frames by calling the imageCallback function
   ros::spin();
