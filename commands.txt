@@ -44,15 +44,20 @@ rosrun foos_control startup
 #kill roscore
 killall -9 rosmaster
 
+###############################################################
+#
+# Image processing Commands
+#
+###############################################################
+
+
 # ball tracking
 # view webcams
 ls -ltrh /dev/video*
 
-#run ball tracker
-python colorTracker.py
-
 # camera driver
 rosparam set cv_camera/device_id 2
+# make sure other applications accessing webcam are closed, ie cheese 
 rosrun cv_camera cv_camera_node
 
 ## using file for camera driver
@@ -64,7 +69,7 @@ rosparam set cv_camera/rescale_camera_info true
 rosrun image_view image_view image:=cv_camera/image_raw
 
 #run camera calibration
-rosrun camera_calibration cameracalibrator.py --size 10x7 --square 0.021 image:=/cv_camera/image_raw camera:=/cv_camera
+rosrun camera_calibration cameracalibrator.py --size 9x6 --square 0.01 image:=/cv_camera/image_raw camera:=/cv_camera
 
 #use ros image_proc library
 ROS_NAMESPACE=cv_camera rosrun image_proc image_proc
@@ -73,4 +78,22 @@ rosrun image_view image_view image:=cv_camera/image_rect_color
 
 rosrun image_view image_saver image:=cv_camera/image_rect_color
 rosrun image_view video_recorder image:=cv_camera/image_rect_color
+
+###############################################################
+# Ball tracker
+###############################################################
+
+# python ball tracker - old
+python colorTracker.py
+
+# C++ ball tracker
+rosrun foos_perception colorTracker
+
+
+# using video_stream_opencv
+source foosball/catkin_ws/devel/setup.bash
+roslaunch video_stream_opencv video_recording.launch 
+
+#
+rosparam set cv_camera/file /home/joe/Videos/Webcam/2022-04-20-210347.webm
 
