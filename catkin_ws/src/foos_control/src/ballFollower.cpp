@@ -23,16 +23,77 @@ void linearStepsCallBack(const std_msgs::Int16& msg)
 }
 
 static struct {
-  int16_t length;
-  int16_t width;
+  float length;
+  float width;
 } tableDimensions;
 
-tableDimensions.length = 288; //MM
-tableDimensions.width = 398; //MM
+tableDimensions.width = 288; //MM
+tableDimensions.length = 398; //MM
 
-typedef foosManZone {
-  int16_t start;
-  int16_t end;
+typedef struct foosManZone {
+  float start;
+  float end;
+}
+
+
+class FoosRod {
+  public:
+    FoosRod(uint8_t numFoosMen, float footWidth, float relativeOffsets[], float motionRange);
+    uint8_t getZoneNumber(float ballPositionY);
+
+  private:
+    uint8_t numFoosMen;
+    float footWidth;
+    float relativeOffsets[];
+    float motionRange;
+
+    foosManZone zones[];
+};
+
+/*
+* Todo:
+- make numbers all ints, in terms of MM
+- if ball in zone, check neighbour for overlap
+- fix scale of ball coordinates output by colorTracker
+*/
+
+FoosRod::FoosRod(float numFoosMen, float footWidth, float relativeOffsets[], float motionRange) {
+  numFoosMen = numFoosMen;
+  footWidth = footWidth;
+  relativeOffsets = relativeOffsets;
+  motionRange = motionRange;
+  zones = malloc(numFoosMen * sizeof(foosManZone));
+  
+  // first zone will go from 0 to 
+  zones[0].start = 0;
+  zones[0].end = relativeOffsets[0] + motionRange + footWidth / 2;
+
+  for (int i = 0; i < numFoosMen; ) {
+     zones[i].start = relativeOffsets[0] - footWidth / 2;
+     zones[i].end = relativeOffsets[0] + motionRange + footWidth / 2;
+  }
+  zones[0].start = 0;
+  if(numFoosMen > 1) {
+    zones[numFoosMen - 1].end = tableDimensions.width;
+  }
+}
+
+int8_t FoosRod::getZoneNumber(float ballPositionY, float rodPosition) {
+  if(ballPosition < 0) {
+    return 0;
+  }
+  if(ballPosition > tableDimensions.width) {
+    return numFoosMen - 1;
+  }
+  for(int i = 0; i < numFoosMen; i++) {
+    if(ballPositionY > zones[i].start && ballPositionY < zones[i].end) {
+      // TODO - compare if overlap with zone of neighbour
+      return i;
+    }
+  }
+
+  // technically shouldn't reach here
+  return -1;
 }
 
 void ballPositionCallback(const geometry_msgs::Pose2D& msg) {
