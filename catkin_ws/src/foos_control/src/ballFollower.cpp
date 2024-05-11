@@ -23,6 +23,13 @@ ros::Publisher positionPub;
 
 FoosRod *foosRod;
 
+float mapWorldPositionToCarriageSteps(float worldY) {
+  float dy = controlSettings.maxLinearPos - controlSettings.minLinearPos;
+  float dx = tableDimensions.width;
+  float m = dy / dx;
+  return worldY * m + controlSettings.minLinearPos;
+}
+
 void ballPositionCallback(const geometry_msgs::Pose2D& msg) {
   // for now rescale position down by factor of 2
 
@@ -30,10 +37,12 @@ void ballPositionCallback(const geometry_msgs::Pose2D& msg) {
 
   int zone = foosRod->getZoneNumber(ball_y);
   if(zone >= 0 && zone < foosRod->getNumFoosMen()) {
-    float targetCarriagePosition = ball_y - foosRod->getFoosManOffset(zone);
+    float targetCarriageWorldPosition = ball_y - foosRod->getFoosManOffset(zone);
     
+    float targetCarriageSteps = mapWorldPositionToCarriageSteps(targetCarriageWorldPosition);
+
     std_msgs::Int16 positionCmd;
-  	positionCmd.data = (int16_t) roundf(targetCarriagePosition);
+  	positionCmd.data = (int16_t) roundf(targetCarriageSteps);
   	positionPub.publish(positionCmd);
   }
 
