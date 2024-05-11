@@ -6,7 +6,7 @@
 - fix scale of ball coordinates output by colorTracker
 */
 
-FoosRod::FoosRod(uint8_t numFoosMen, float footWidth, float relativeOffsets[], float motionRange, float tableWidth) {
+FoosRod::FoosRod(uint8_t numFoosMen, float footWidth, const float relativeOffsets[], float motionRange, float tableWidth) {
   numFoosMen = numFoosMen;
   footWidth = footWidth;
   relativeOffsets = relativeOffsets;
@@ -43,4 +43,11 @@ int8_t FoosRod::getZoneNumber(float ballPositionY) {
 
   // technically shouldn't reach here
   return -1;
+}
+
+float FoosRod::getFoosManOffset(uint8_t foosManNumber) {
+    if(foosManNumber >= 0 && foosManNumber < numFoosMen) {
+        return relativeOffsets[foosManNumber];
+    }
+    return 0;
 }

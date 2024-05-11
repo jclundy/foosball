@@ -5,6 +5,7 @@
 
 #include "control_definitions.h"
 #include "FoosRod.h"
+#include <math.h>
 
 static struct {
   int16_t maxLinearPos;
@@ -20,10 +21,21 @@ static struct {
 
 ros::Publisher positionPub;
 
+FoosRod *foosRod;
+
 void ballPositionCallback(const geometry_msgs::Pose2D& msg) {
   // for now rescale position down by factor of 2
 
   int16_t ball_y = msg.y / 2.0;
+
+  int zone = foosRod->getZoneNumber(ball_y);
+  if(zone >= 0 && zone < foosRod->getNumFoosMen()) {
+    float targetCarriagePosition = ball_y - foosRod->getFoosManOffset(zone);
+    
+    std_msgs::Int16 positionCmd;
+  	positionCmd.data = (int16_t) roundf(targetCarriagePosition);
+  	positionPub.publish(positionCmd);
+  }
 
 }
 
@@ -35,8 +47,13 @@ void linearStepsCallBack(const std_msgs::Int16& msg)
 int main(int argc, char **argv)
 {
 
+  const float foosManOffsets[] = {17, 105, 186};
+  const float motionRange = 88; // MM
+  const float footWidth = 13; //MM
   tableDimensions.width = 288; //MM
   tableDimensions.length = 398; //MM
+
+  foosRod = new FoosRod(3, footWidth, foosManOffsets, motionRange, tableDimensions.width);
 
   ros::init(argc, argv, "ballFollower");
   ros::NodeHandle n;
