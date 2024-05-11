@@ -1,10 +1,8 @@
 #include "ros/ros.h"
 #include "std_msgs/Int16.h"
-#include "std_msgs/UInt8.h"
-#include "sensor_msgs/Joy.h"
 #include "foos_control/GetLinearCalibration.h"
+#include "geometry_msgs/Pose2D.h"
 
-#include "joystick_definitions.h"
 #include "control_definitions.h"
 
 #include <math.h>
@@ -15,25 +13,17 @@ static struct {
   int16_t currentPos; 
 } controlSettings;
 
-ros::Publisher positionPub;
-
-void linearStepsCallBack(const std_msgs::Int16& msg) 
-{
-   controlSettings.currentPos = msg.data;
-}
 
 static struct {
   float length;
   float width;
 } tableDimensions;
 
-tableDimensions.width = 288; //MM
-tableDimensions.length = 398; //MM
 
 typedef struct foosManZone {
   float start;
   float end;
-}
+};
 
 
 class FoosRod {
@@ -44,10 +34,11 @@ class FoosRod {
   private:
     uint8_t numFoosMen;
     float footWidth;
-    float relativeOffsets[];
     float motionRange;
 
     foosManZone zones[];
+    float relativeOffsets[];
+
 };
 
 /*
@@ -96,13 +87,15 @@ int8_t FoosRod::getZoneNumber(float ballPositionY, float rodPosition) {
   return -1;
 }
 
+
+ros::Publisher positionPub;
+
 void ballPositionCallback(const geometry_msgs::Pose2D& msg) {
   // for now rescale position down by factor of 2
 
-  int16_t ball_y = msg.data.y / 2.0;
+  int16_t ball_y = msg.y / 2.0;
 
 }
-
 
 void linearStepsCallBack(const std_msgs::Int16& msg) 
 {
@@ -111,6 +104,9 @@ void linearStepsCallBack(const std_msgs::Int16& msg)
 
 int main(int argc, char **argv)
 {
+
+  tableDimensions.width = 288; //MM
+  tableDimensions.length = 398; //MM
 
   ros::init(argc, argv, "ballFollower");
   ros::NodeHandle n;
