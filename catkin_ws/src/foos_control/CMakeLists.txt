@@ -122,6 +122,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+add_library(CUSTOM include/FoosRod.cpp include/FoosRod.h)
 
 add_executable(startup src/startup.cpp)
 target_link_libraries(startup ${catkin_LIBRARIES})
@@ -133,7 +134,7 @@ add_executable(supervisor src/supervisor.cpp)
 target_link_libraries(supervisor ${catkin_LIBRARIES})
 
 add_executable(ballFollower src/ballFollower.cpp)
-target_link_libraries(ballFollower ${catkin_LIBRARIES})
+target_link_libraries(ballFollower ${catkin_LIBRARIES} CUSTOM)
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/foos_control.cpp
