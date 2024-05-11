@@ -132,6 +132,8 @@ target_link_libraries(openLoop ${catkin_LIBRARIES})
 add_executable(supervisor src/supervisor.cpp)
 target_link_libraries(supervisor ${catkin_LIBRARIES})
 
+add_executable(ballFollower src/ballFollower.cpp)
+target_link_libraries(ballFollower ${catkin_LIBRARIES})
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/foos_control.cpp
