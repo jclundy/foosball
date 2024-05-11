@@ -94,9 +94,7 @@ int main(int argc, char **argv)
     
     int16_t distance = (speedCommand > 0)? (controlSettings.maxLinearPos - controlSettings.currentPos) : (controlSettings.currentPos - controlSettings.minLinearPos);  
     float scale = tanh(fabs(distance/(controlSettings.alpha)));
-    
-    ROS_INFO("Scale: %f, Distance %i", scale, distance);
-     
+         
     linearSpeedCmd.data = speedCommand * scale;
     wristSpeedCmd.data = setpoints.wristSpeed;
     linearSpeedPub.publish(linearSpeedCmd);
