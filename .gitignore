@@ -1,5 +1,6 @@
 catkin_ws/build/*
 catkin_ws/devel/*
+.vscode
 *.swp
 recordings/*
 *.avi
