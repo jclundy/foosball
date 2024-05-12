@@ -37,6 +37,7 @@ void ballPositionCallback(const geometry_msgs::Pose2D& msg) {
   int16_t ball_y = msg.y / 2.0;
 
   int zone = foosRod->getZoneNumber(ball_y);
+
   if(zone >= 0 && zone < foosRod->getNumFoosMen()) {
     float targetCarriageWorldPosition = ball_y - foosRod->getFoosManOffset(zone);
     
@@ -44,6 +45,7 @@ void ballPositionCallback(const geometry_msgs::Pose2D& msg) {
 
   	controlSettings.setpointSteps = (int16_t) roundf(targetCarriageSteps);
   }
+  ROS_INFO("Ball position callback: zone=%i, ball_y=%i, setpoints steps=%i", zone, ball_y, controlSettings.setpointSteps);
 
 }
 
@@ -55,27 +57,30 @@ void linearStepsCallBack(const std_msgs::Int16& msg)
 int main(int argc, char **argv)
 {
 
+  ROS_INFO("Debug ball follower start");
+
   const float foosManOffsets[] = {17, 105, 186};
   const float motionRange = 88; // MM
   const float footWidth = 13; //MM
   tableDimensions.width = 288; //MM
   tableDimensions.length = 398; //MM
 
+  ROS_INFO("before calling new FoosRod");
   foosRod = new FoosRod(3, footWidth, foosManOffsets, motionRange, tableDimensions.width);
+  ROS_INFO("after calling new FoosRod");
 
   ros::init(argc, argv, "ballFollower");
   ros::NodeHandle n;
 
+  ROS_INFO("after calling ros init");
   ros::Publisher linearSpeedPub = n.advertise<std_msgs::Int16>("linear_speed", 10);
 
   ros::Subscriber stepsSub = n.subscribe("linear_steps", 10, linearStepsCallBack);
-  ros::Subscriber ballPositionSub = n.subscribe("foosball/ball_position", 10, ballPositionCallback);
-
-  ("foosball/ball_position", 10);
-  
+  ros::Subscriber ballPositionSub = n.subscribe("foosball/ball_position", 10, ballPositionCallback); 
   ros::ServiceClient client = n.serviceClient<foos_control::GetLinearCalibration>("linear_calibration_info");
-
   foos_control::GetLinearCalibration srv;
+
+  ROS_INFO("initialize publishers and subscribers");
   srv.request.id = 0;
   
   if(client.call(srv)) {
@@ -90,19 +95,27 @@ int main(int argc, char **argv)
     ROS_INFO("Failed to call service linear_calibration_info");
   }
 
+  ROS_INFO("called service");
+
   ros::Rate loop_rate(30);
   
+  ROS_INFO("loop");
+
   while (ros::ok())
   {
 
+    int16_t stepRange = controlSettings.maxLinearPos - controlSettings.minLinearPos;
     int16_t error = controlSettings.setpointSteps - controlSettings.currentPos;
-    const float P_gain = MAX_SPEED / tableDimensions.width;
+    const float P_gain = fabs(MAX_SPEED / stepRange);
 
     float speedRequest = P_gain * error;
 
     std_msgs::Int16 linearSpeedCmd;
     linearSpeedCmd.data = roundf(speedRequest);
     linearSpeedPub.publish(linearSpeedCmd);
+
+    // ROS_INFO("Setpoint = %i, CurretPos = %i, Error=%i, SpeedRequest=%i", controlSettings.setpointSteps, controlSettings.currentPos,  error, linearSpeedCmd.data);
+
 
     ros::spinOnce();
     loop_rate.sleep();
