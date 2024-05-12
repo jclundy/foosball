@@ -107,13 +107,13 @@ void linearStepsCallBack(const std_msgs::Int16& msg)
         ROS_INFO("finished homing");
         
         // reset operation mode to speed control
-        // std_msgs::UInt8 speedModeCmd;
-        // speedModeCmd.data = LINEAR_MOTOR;
-        // speedModePub.publish(speedModeCmd);
+        std_msgs::UInt8 speedModeCmd;
+        speedModeCmd.data = LINEAR_MOTOR;
+        speedModePub.publish(speedModeCmd);
 
-        // std_msgs::Int16 linearSpeedCmd;
-        // linearSpeedCmd.data = 0;
-        // speedPub.publish(linearSpeedCmd);
+        std_msgs::Int16 linearSpeedCmd;
+        linearSpeedCmd.data = 0;
+        speedPub.publish(linearSpeedCmd);
 
         ros::shutdown();
       }
