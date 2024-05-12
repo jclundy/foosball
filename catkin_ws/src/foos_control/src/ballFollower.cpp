@@ -10,10 +10,10 @@
 #define MAX_SPEED 15000
 
 static struct {
-  int16_t maxLinearPos;
-  int16_t minLinearPos;
-  int16_t currentPos; 
-  int16_t setpointSteps;
+  int maxLinearPos;
+  int minLinearPos;
+  int currentPos; 
+  int setpointSteps;
 } controlSettings;
 
 
@@ -34,7 +34,7 @@ float mapWorldPositionToCarriageSteps(float worldY) {
 void ballPositionCallback(const geometry_msgs::Pose2D& msg) {
   // for now rescale position down by factor of 2
 
-  int16_t ball_y = msg.y / 2.0;
+  int ball_y = msg.y / 2.0;
 
   int zone = foosRod->getZoneNumber(ball_y);
 
@@ -43,10 +43,8 @@ void ballPositionCallback(const geometry_msgs::Pose2D& msg) {
     
     float targetCarriageSteps = mapWorldPositionToCarriageSteps(targetCarriageWorldPosition);
 
-  	controlSettings.setpointSteps = (int16_t) roundf(targetCarriageSteps);
+  	controlSettings.setpointSteps = (int) roundf(targetCarriageSteps);
   }
-  ROS_INFO("Ball position callback: zone=%i, ball_y=%i, setpoints steps=%i", zone, ball_y, controlSettings.setpointSteps);
-
 }
 
 void linearStepsCallBack(const std_msgs::Int16& msg) 
@@ -104,8 +102,8 @@ int main(int argc, char **argv)
   while (ros::ok())
   {
 
-    int16_t stepRange = controlSettings.maxLinearPos - controlSettings.minLinearPos;
-    int16_t error = controlSettings.setpointSteps - controlSettings.currentPos;
+    int stepRange = controlSettings.maxLinearPos - controlSettings.minLinearPos;
+    int error = controlSettings.setpointSteps - controlSettings.currentPos;
     const float P_gain = fabs(MAX_SPEED / stepRange);
 
     float speedRequest = P_gain * error;
@@ -114,7 +112,7 @@ int main(int argc, char **argv)
     linearSpeedCmd.data = roundf(speedRequest);
     linearSpeedPub.publish(linearSpeedCmd);
 
-    // ROS_INFO("Setpoint = %i, CurretPos = %i, Error=%i, SpeedRequest=%i", controlSettings.setpointSteps, controlSettings.currentPos,  error, linearSpeedCmd.data);
+    ROS_INFO("Setpoint = %i, CurretPos = %i, Error=%i, SpeedRequest=%i", controlSettings.setpointSteps, controlSettings.currentPos,  error, linearSpeedCmd.data);
 
 
     ros::spinOnce();

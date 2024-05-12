@@ -10,13 +10,13 @@ typedef struct {
 
 class FoosRod {
   public:
-    FoosRod(uint8_t numFoosMen, float footWidth, const float relativeOffsets[], float motionRange, float tableWidth);
-    int8_t getZoneNumber(float ballPositionY);
-    uint8_t getNumFoosMen() {return m_numFoosMen;};
-    float getFoosManOffset(uint8_t foosManNumber);
+    FoosRod(int numFoosMen, float footWidth, const float relativeOffsets[], float motionRange, float tableWidth);
+    int getZoneNumber(float ballPositionY);
+    int getNumFoosMen() {return m_numFoosMen;};
+    float getFoosManOffset(int foosManNumber);
 
   private:
-    uint8_t m_numFoosMen;
+    int m_numFoosMen;
     float m_footWidth;
     float m_motionRange;
     float m_tableWidth;
