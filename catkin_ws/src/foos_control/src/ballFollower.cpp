@@ -7,10 +7,13 @@
 #include "FoosRod.h"
 #include <math.h>
 
+#define MAX_SPEED 15000
+
 static struct {
   int16_t maxLinearPos;
   int16_t minLinearPos;
   int16_t currentPos; 
+  int16_t setpointSteps;
 } controlSettings;
 
 
@@ -18,8 +21,6 @@ static struct {
   float length;
   float width;
 } tableDimensions;
-
-ros::Publisher positionPub;
 
 FoosRod *foosRod;
 
@@ -41,9 +42,7 @@ void ballPositionCallback(const geometry_msgs::Pose2D& msg) {
     
     float targetCarriageSteps = mapWorldPositionToCarriageSteps(targetCarriageWorldPosition);
 
-    std_msgs::Int16 positionCmd;
-  	positionCmd.data = (int16_t) roundf(targetCarriageSteps);
-  	positionPub.publish(positionCmd);
+  	controlSettings.setpointSteps = (int16_t) roundf(targetCarriageSteps);
   }
 
 }
@@ -67,7 +66,8 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "ballFollower");
   ros::NodeHandle n;
 
-  positionPub = n.advertise<std_msgs::Int16>("linear_position_cmd", 10);
+  ros::Publisher linearSpeedPub = n.advertise<std_msgs::Int16>("linear_speed", 10);
+
   ros::Subscriber stepsSub = n.subscribe("linear_steps", 10, linearStepsCallBack);
   ros::Subscriber ballPositionSub = n.subscribe("foosball/ball_position", 10, ballPositionCallback);
 
@@ -90,11 +90,20 @@ int main(int argc, char **argv)
     ROS_INFO("Failed to call service linear_calibration_info");
   }
 
-  ros::Rate loop_rate(10);
+  ros::Rate loop_rate(30);
   
   while (ros::ok())
   {
-  
+
+    int16_t error = controlSettings.setpointSteps - controlSettings.currentPos;
+    const float P_gain = MAX_SPEED / tableDimensions.width;
+
+    float speedRequest = P_gain * error;
+
+    std_msgs::Int16 linearSpeedCmd;
+    linearSpeedCmd.data = roundf(speedRequest);
+    linearSpeedPub.publish(linearSpeedCmd);
+
     ros::spinOnce();
     loop_rate.sleep();
   }
